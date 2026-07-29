@@ -1,6 +1,19 @@
 version: '3.8'
 
 services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: web_scraper_postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-web_scraper_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
   web-scraper-microservice:
     build:
       context: .
@@ -10,6 +23,17 @@ services:
       - "8501:8501"
     env_file:
       - .env
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - POSTGRES_DB=${POSTGRES_DB:-web_scraper_db}
+    depends_on:
+      - postgres
     volumes:
       - ./storage:/app/storage
     restart: unless-stopped
+
+volumes:
+  postgres_data:
