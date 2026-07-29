@@ -21,7 +21,7 @@ if str(project_root) not in sys.path:
 storage_dir = project_root / "storage"
 storage_dir.mkdir(exist_ok=True)
 
-# Import core modules with force-reload to ensure changes take effect without full server restart
+# Import core submodules with force-reload to ensure changes take effect without server restart
 import core.engine
 import core.scraper
 import core.db
@@ -29,9 +29,9 @@ importlib.reload(core.engine)
 importlib.reload(core.scraper)
 importlib.reload(core.db)
 
-from core import (
-    EngineConfig, 
-    ModularScraper, 
+from core.engine import EngineConfig, BrowserEngine
+from core.scraper import ModularScraper, AgenticScrapeResult
+from core.db import (
     init_db, 
     save_scrape_record, 
     get_recent_scrapes, 
@@ -129,7 +129,7 @@ def generate_csv_data(results_dict: dict) -> str:
 
 def main():
     st.markdown('<div class="main-header">Modular Scraping Microservice</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-header">Decoupled Playwright Engine, Gemini Agentic Router & SQLite Database</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sub-header">Decoupled Playwright Engine, Gemini Agentic Router & Database Persistence</div>', unsafe_allow_html=True)
 
     # Sidebar Configurations
     st.sidebar.title("⚙️ Engine Settings")
@@ -179,7 +179,7 @@ def main():
     )
 
     st.sidebar.markdown("---")
-    st.sidebar.info("💡 **Decoupled Architecture**: SQLite Database initialized at `storage/scraped_data.db`.")
+    st.sidebar.info("💡 **Decoupled Architecture**: Database persistence initialized with PostgreSQL & SQLite support.")
 
     # Tabs for Main Interface and Database History
     tab_scrape, tab_history = st.tabs(["🚀 New Scrape", "📜 Database & History"])
@@ -341,13 +341,13 @@ def main():
                         st.error(f"Agentic Scraping Error: {str(e)}")
 
     with tab_history:
-        st.subheader("📜 Stored Scrape Records (SQLite Database)")
+        st.subheader("📜 Stored Scrape Records")
         records = get_recent_scrapes(limit=50)
 
         if not records:
             st.info("No records found in database. Perform a scrape to store historical results!")
         else:
-            st.write(f"Showing **{len(records)}** recent records stored in `storage/scraped_data.db`:")
+            st.write(f"Showing **{len(records)}** recent database records:")
             
             for rec in records:
                 rec_id = rec["id"]
