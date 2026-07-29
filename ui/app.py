@@ -24,10 +24,22 @@ storage_dir.mkdir(exist_ok=True)
 # Import core modules with force-reload to ensure changes take effect without full server restart
 import core.engine
 import core.scraper
+import core.db
 importlib.reload(core.engine)
 importlib.reload(core.scraper)
+importlib.reload(core.db)
 
-from core import EngineConfig, ModularScraper
+from core import (
+    EngineConfig, 
+    ModularScraper, 
+    init_db, 
+    save_scrape_record, 
+    get_recent_scrapes, 
+    delete_scrape_record
+)
+
+# Initialize Database
+init_db()
 
 # Load environment variables from .env if present
 load_dotenv(dotenv_path=project_root / ".env", override=True)
@@ -55,7 +67,7 @@ st.markdown("""
     .sub-header {
         color: #94a3b8;
         font-size: 1rem;
-        margin-bottom: 2rem;
+        margin-bottom: 1.5rem;
     }
     .stButton > button {
         background: linear-gradient(135deg, #4285f4 0%, #a855f7 100%);
@@ -69,13 +81,6 @@ st.markdown("""
     .stButton > button:hover {
         opacity: 0.9;
         transform: translateY(-1px);
-    }
-    .download-section {
-        background-color: #1e293b;
-        padding: 1.2rem;
-        border-radius: 10px;
-        margin-top: 1.5rem;
-        border: 1px solid #334155;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -124,7 +129,7 @@ def generate_csv_data(results_dict: dict) -> str:
 
 def main():
     st.markdown('<div class="main-header">Modular Scraping Microservice</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-header">Decoupled Playwright Engine & Gemini Agentic Extraction</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sub-header">Decoupled Playwright Engine, Gemini Agentic Router & SQLite Database</div>', unsafe_allow_html=True)
 
     # Sidebar Configurations
     st.sidebar.title("⚙️ Engine Settings")
@@ -174,153 +179,215 @@ def main():
     )
 
     st.sidebar.markdown("---")
-    st.sidebar.info("💡 **Decoupled Architecture**: This UI never touches Playwright directly. All browser automation is handled by `core.engine`.")
+    st.sidebar.info("💡 **Decoupled Architecture**: SQLite Database initialized at `storage/scraped_data.db`.")
 
-    # Main Layout
-    col1, col2 = st.columns([2, 1])
-    
-    with col1:
-        target_url_input = st.text_input(
-            "Target URL",
-            placeholder="https://www.amazon.in/s?k=iphone",
-            help="Enter the full URL of the target webpage"
-        )
-    
-    with col2:
-        scrape_mode = st.radio(
-            "Extraction Mode",
-            options=["Direct Scrape", "Agentic Scrape"],
-            help="Direct mode returns raw innerText. Agentic mode extracts structured JSON via Gemini."
-        )
+    # Tabs for Main Interface and Database History
+    tab_scrape, tab_history = st.tabs(["🚀 New Scrape", "📜 Database & History"])
 
-    prompt = ""
-    if scrape_mode == "Agentic Scrape":
-        prompt = st.text_area(
-            "Intent Prompt",
-            placeholder="e.g., Extract all product names, prices, and ratings from the page into structured JSON.",
-            height=120,
-            help="Specify what structured data you want Gemini to extract from the webpage text."
-        )
-
-    start_button = st.button("🚀 Start Scraping", use_container_width=False)
-
-    if start_button:
-        target_url, is_valid = clean_and_validate_url(target_url_input)
+    with tab_scrape:
+        # Main Layout
+        col1, col2 = st.columns([2, 1])
         
-        if not target_url or not is_valid:
-            st.error("Invalid URL format. Please paste a clean web URL (e.g., `https://www.amazon.in/s?k=iphone+17+pro`).")
-            return
+        with col1:
+            target_url_input = st.text_input(
+                "Target URL",
+                placeholder="https://www.amazon.in/s?k=iphone",
+                help="Enter the full URL of the target webpage"
+            )
+        
+        with col2:
+            scrape_mode = st.radio(
+                "Extraction Mode",
+                options=["Direct Scrape", "Agentic Scrape"],
+                help="Direct mode returns raw innerText. Agentic mode extracts structured JSON via Gemini."
+            )
 
-        # Build EngineConfig from UI parameters
-        config = EngineConfig(
-            headless=headless_mode,
-            proxy_server=proxy_server if proxy_server.strip() else None,
-            user_agent=user_agent if user_agent.strip() else None
-        )
+        prompt = ""
+        if scrape_mode == "Agentic Scrape":
+            prompt = st.text_area(
+                "Intent Prompt",
+                placeholder="e.g., Extract all product names, prices, and ratings from the page into structured JSON.",
+                height=120,
+                help="Specify what structured data you want Gemini to extract from the webpage text."
+            )
 
-        scraper = ModularScraper(config=config)
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        start_button = st.button("🚀 Start Scraping", use_container_width=False)
 
-        if scrape_mode == "Direct Scrape":
-            with st.spinner("⏳ Running Direct Scrape via Headless Engine..."):
-                try:
-                    raw_text = run_async_task(scraper.run_direct_scrape(target_url))
-                    st.success("Direct scrape completed successfully!")
-                    
-                    st.subheader("📄 Raw Extracted Text")
-                    st.code(raw_text[:2000] + ("\n... [truncated for display]" if len(raw_text) > 2000 else ""), language="text")
-
-                    # Auto-save to storage directory
-                    saved_path = storage_dir / f"direct_scrape_{timestamp}.txt"
-                    saved_path.write_text(raw_text, encoding="utf-8")
-
-                    # Download options
-                    st.markdown("---")
-                    st.subheader("💾 Export & Download Options")
-                    st.download_button(
-                        label="📥 Download Raw Text (.txt)",
-                        data=raw_text,
-                        file_name=f"direct_scrape_{timestamp}.txt",
-                        mime="text/plain"
-                    )
-                except Exception as e:
-                    st.error(f"Scraping Error: {str(e)}")
-
-        elif scrape_mode == "Agentic Scrape":
-            if not prompt.strip():
-                st.warning("Please provide an Intent Prompt for Agentic Scrape.")
+        if start_button:
+            target_url, is_valid = clean_and_validate_url(target_url_input)
+            
+            if not target_url or not is_valid:
+                st.error("Invalid URL format. Please paste a clean web URL (e.g., `https://www.amazon.in/s?k=iphone+17+pro`).")
                 return
 
-            if not effective_api_key:
-                st.error("Gemini API Key is missing. Please set `GEMINI_API_KEY` in your `.env` file or enter it in the sidebar.")
-                return
+            # Build EngineConfig from UI parameters
+            config = EngineConfig(
+                headless=headless_mode,
+                proxy_server=proxy_server if proxy_server.strip() else None,
+                user_agent=user_agent if user_agent.strip() else None
+            )
 
-            with st.spinner(f"🤖 Executing Agentic Scrape (Browser Extraction + {gemini_model} Structuring)..."):
-                try:
-                    result = run_async_task(
-                        scraper.run_agentic_scrape(
+            scraper = ModularScraper(config=config)
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+            if scrape_mode == "Direct Scrape":
+                with st.spinner("⏳ Running Direct Scrape via Headless Engine..."):
+                    try:
+                        raw_text = run_async_task(scraper.run_direct_scrape(target_url))
+                        st.success("Direct scrape completed successfully!")
+                        
+                        # Save record to Database
+                        record_id = save_scrape_record(
                             url=target_url,
+                            mode="Direct Scrape",
+                            raw_text=raw_text,
+                            summary=f"Direct text scrape of {target_url}"
+                        )
+                        st.caption(f"💾 Saved record to Database (ID: `{record_id}`)")
+
+                        st.subheader("📄 Raw Extracted Text")
+                        st.code(raw_text[:2000] + ("\n... [truncated for display]" if len(raw_text) > 2000 else ""), language="text")
+
+                        # Download options
+                        st.markdown("---")
+                        st.subheader("💾 Export & Download Options")
+                        st.download_button(
+                            label="📥 Download Raw Text (.txt)",
+                            data=raw_text,
+                            file_name=f"direct_scrape_{timestamp}.txt",
+                            mime="text/plain"
+                        )
+                    except Exception as e:
+                        st.error(f"Scraping Error: {str(e)}")
+
+            elif scrape_mode == "Agentic Scrape":
+                if not prompt.strip():
+                    st.warning("Please provide an Intent Prompt for Agentic Scrape.")
+                    return
+
+                if not effective_api_key:
+                    st.error("Gemini API Key is missing. Please set `GEMINI_API_KEY` in your `.env` file or enter it in the sidebar.")
+                    return
+
+                with st.spinner(f"🤖 Executing Agentic Scrape (Browser Extraction + {gemini_model} Structuring)..."):
+                    try:
+                        result = run_async_task(
+                            scraper.run_agentic_scrape(
+                                url=target_url,
+                                prompt=prompt,
+                                gemini_api_key=effective_api_key,
+                                model_name=gemini_model
+                            )
+                        )
+                        st.success("Agentic scrape completed successfully!")
+                        
+                        result_dict = result.to_dict()
+                        
+                        # Save record to Database
+                        record_id = save_scrape_record(
+                            url=target_url,
+                            mode="Agentic Scrape",
                             prompt=prompt,
-                            gemini_api_key=effective_api_key,
-                            model_name=gemini_model
+                            summary=result.summary,
+                            results=result_dict.get("results", {})
                         )
-                    )
-                    st.success("Agentic scrape completed successfully!")
+                        st.caption(f"💾 Saved record to Database (ID: `{record_id}`)")
+
+                        st.subheader("📊 Structured JSON Result")
+                        st.json(result_dict)
+
+                        with st.expander("📝 Summary", expanded=True):
+                            st.write(result.summary)
+
+                        # Prepare Formatted Exports
+                        json_data = json.dumps(result_dict, indent=2)
+                        csv_data = generate_csv_data(result.results)
+                        txt_data = f"SUMMARY:\n{result.summary}\n\nEXTRACTED DATA:\n{json_data}"
+
+                        # Download Buttons UI
+                        st.markdown("---")
+                        st.subheader("💾 Export & Download Options")
+                        
+                        d_col1, d_col2, d_col3 = st.columns(3)
+                        
+                        with d_col1:
+                            st.download_button(
+                                label="📥 Download JSON (.json)",
+                                data=json_data,
+                                file_name=f"scrape_{timestamp}.json",
+                                mime="application/json",
+                                use_container_width=True
+                            )
+                        
+                        with d_col2:
+                            st.download_button(
+                                label="📊 Download CSV (.csv)",
+                                data=csv_data,
+                                file_name=f"scrape_{timestamp}.csv",
+                                mime="text/csv",
+                                use_container_width=True
+                            )
+                        
+                        with d_col3:
+                            st.download_button(
+                                label="📄 Download Summary (.txt)",
+                                data=txt_data,
+                                file_name=f"scrape_{timestamp}.txt",
+                                mime="text/plain",
+                                use_container_width=True
+                            )
+
+                    except Exception as e:
+                        st.error(f"Agentic Scraping Error: {str(e)}")
+
+    with tab_history:
+        st.subheader("📜 Stored Scrape Records (SQLite Database)")
+        records = get_recent_scrapes(limit=50)
+
+        if not records:
+            st.info("No records found in database. Perform a scrape to store historical results!")
+        else:
+            st.write(f"Showing **{len(records)}** recent records stored in `storage/scraped_data.db`:")
+            
+            for rec in records:
+                rec_id = rec["id"]
+                url = rec["url"]
+                mode = rec["mode"]
+                created_at = rec["created_at"]
+                summary = rec.get("summary") or "No summary"
+                results = rec.get("results", {})
+                
+                with st.expander(f"📌 Record #{rec_id} | {mode} | {url[:60]}... ({created_at})"):
+                    st.write(f"**Target URL:** {url}")
+                    st.write(f"**Mode:** `{mode}`")
+                    st.write(f"**Date:** `{created_at}`")
+                    if rec.get("prompt"):
+                        st.write(f"**Prompt:** {rec['prompt']}")
                     
-                    result_dict = result.to_dict()
-                    st.subheader("📊 Structured JSON Result")
-                    st.json(result_dict)
+                    st.write(f"**Summary:** {summary}")
 
-                    with st.expander("📝 Summary", expanded=True):
-                        st.write(result.summary)
+                    if results:
+                        st.json(results)
+                        json_str = json.dumps(results, indent=2)
+                        csv_str = generate_csv_data(results)
 
-                    # Prepare Formatted Exports
-                    json_data = json.dumps(result_dict, indent=2)
-                    csv_data = generate_csv_data(result.results)
-                    txt_data = f"SUMMARY:\n{result.summary}\n\nEXTRACTED DATA:\n{json_data}"
-
-                    # Auto-save to storage directory
-                    json_save_path = storage_dir / f"agentic_scrape_{timestamp}.json"
-                    json_save_path.write_text(json_data, encoding="utf-8")
-
-                    csv_save_path = storage_dir / f"agentic_scrape_{timestamp}.csv"
-                    csv_save_path.write_text(csv_data, encoding="utf-8")
-
-                    # Download Buttons UI
-                    st.markdown("---")
-                    st.subheader("💾 Export & Download Options")
-                    
-                    d_col1, d_col2, d_col3 = st.columns(3)
-                    
-                    with d_col1:
-                        st.download_button(
-                            label="📥 Download JSON (.json)",
-                            data=json_data,
-                            file_name=f"scrape_{timestamp}.json",
-                            mime="application/json",
-                            use_container_width=True
-                        )
-                    
-                    with d_col2:
-                        st.download_button(
-                            label="📊 Download CSV (.csv)",
-                            data=csv_data,
-                            file_name=f"scrape_{timestamp}.csv",
-                            mime="text/csv",
-                            use_container_width=True
-                        )
-                    
-                    with d_col3:
-                        st.download_button(
-                            label="📄 Download Summary (.txt)",
-                            data=txt_data,
-                            file_name=f"scrape_{timestamp}.txt",
-                            mime="text/plain",
-                            use_container_width=True
-                        )
-
-                except Exception as e:
-                    st.error(f"Agentic Scraping Error: {str(e)}")
+                        h_col1, h_col2 = st.columns(2)
+                        with h_col1:
+                            st.download_button(
+                                label=f"📥 Download JSON (Record #{rec_id})",
+                                data=json_str,
+                                file_name=f"record_{rec_id}.json",
+                                mime="application/json",
+                                key=f"dl_json_{rec_id}"
+                            )
+                        with h_col2:
+                            st.download_button(
+                                label=f"📊 Download CSV (Record #{rec_id})",
+                                data=csv_str,
+                                file_name=f"record_{rec_id}.csv",
+                                mime="text/csv",
+                                key=f"dl_csv_{rec_id}"
+                            )
 
 
 if __name__ == "__main__":
