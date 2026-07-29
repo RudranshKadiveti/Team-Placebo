@@ -117,33 +117,63 @@ def run_async_task(coro):
         loop.close()
 
 
-def generate_csv_data(results_dict: dict) -> str:
-    """Convert a dictionary into CSV string format."""
+def generate_csv_data(results_data) -> str:
+    """Convert extracted data into CSV string format."""
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["Field Name / Key", "Extracted Value"])
-    for key, val in results_dict.items():
-        writer.writerow([key, str(val)])
+    
+    if isinstance(results_data, dict):
+        # Fallback for old single dict format
+        writer.writerow(["Field Name / Key", "Extracted Value"])
+        for key, val in results_data.items():
+            writer.writerow([key, str(val)])
+    elif isinstance(results_data, list) and len(results_data) > 0:
+        # Proper tabular CSV for list of objects
+        headers = []
+        for row in results_data:
+            for k in row.keys():
+                if k not in headers:
+                    headers.append(k)
+        
+        writer.writerow(headers)
+        for row in results_data:
+            writer.writerow([str(row.get(h, "")) for h in headers])
+            
     return output.getvalue()
 
 
-def generate_markdown_data(summary: str, results_dict: dict, url: str) -> str:
+def generate_markdown_data(summary: str, results_data, url: str) -> str:
     """Convert extracted results into clean Markdown document format."""
     md = f"# Web Scrape Report\n\n"
     md += f"**Source URL:** [{url}]({url})\n"
     md += f"**Generated:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
     md += f"## Executive Summary\n\n{summary}\n\n"
     md += f"## Extracted Data Results\n\n"
-    md += f"| Field / Attribute | Value |\n"
-    md += f"| :--- | :--- |\n"
-    for k, v in results_dict.items():
-        clean_k = str(k).replace("|", "\\|")
-        clean_v = str(v).replace("|", "\\|").replace("\n", " ")
-        md += f"| **{clean_k}** | {clean_v} |\n"
+    
+    if isinstance(results_data, dict):
+        md += f"| Field / Attribute | Value |\n"
+        md += f"| :--- | :--- |\n"
+        for k, v in results_data.items():
+            clean_k = str(k).replace("|", "\\|")
+            clean_v = str(v).replace("|", "\\|").replace("\n", " ")
+            md += f"| **{clean_k}** | {clean_v} |\n"
+    elif isinstance(results_data, list) and len(results_data) > 0:
+        headers = []
+        for row in results_data:
+            for k in row.keys():
+                if k not in headers:
+                    headers.append(k)
+        
+        md += "| " + " | ".join([h.replace("|", "\\|") for h in headers]) + " |\n"
+        md += "| " + " | ".join(["---"] * len(headers)) + " |\n"
+        for row in results_data:
+            row_vals = [str(row.get(h, "")).replace("|", "\\|").replace("\n", " ") for h in headers]
+            md += "| " + " | ".join(row_vals) + " |\n"
+            
     return md
 
 
-def generate_terraform_data(summary: str, results_dict: dict, url: str) -> str:
+def generate_terraform_data(summary: str, results_data, url: str) -> str:
     """Convert extracted results into Terraform HCL (.tf) configuration format."""
     clean_summary = summary.replace('"', '\\"').replace('\n', ' ')
     tf = f'# Terraform HCL Configuration Generated from Web Scrape\n'
@@ -151,12 +181,25 @@ def generate_terraform_data(summary: str, results_dict: dict, url: str) -> str:
     tf += f'# Timestamp: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}\n\n'
     tf += f'locals {{\n'
     tf += f'  scrape_summary = "{clean_summary}"\n\n'
-    tf += f'  extracted_data = {{\n'
-    for k, v in results_dict.items():
-        clean_k = str(k).replace('"', '\\"').replace('\n', ' ')
-        clean_v = str(v).replace('"', '\\"').replace('\n', ' ')
-        tf += f'    "{clean_k}" = "{clean_v}"\n'
-    tf += f'  }}\n'
+    
+    if isinstance(results_data, dict):
+        tf += f'  extracted_data = {{\n'
+        for k, v in results_data.items():
+            clean_k = str(k).replace('"', '\\"').replace('\n', ' ')
+            clean_v = str(v).replace('"', '\\"').replace('\n', ' ')
+            tf += f'    "{clean_k}" = "{clean_v}"\n'
+        tf += f'  }}\n'
+    elif isinstance(results_data, list):
+        tf += f'  extracted_data = [\n'
+        for row in results_data:
+            tf += f'    {{\n'
+            for k, v in row.items():
+                clean_k = str(k).replace('"', '\\"').replace('\n', ' ')
+                clean_v = str(v).replace('"', '\\"').replace('\n', ' ')
+                tf += f'      "{clean_k}" = "{clean_v}"\n'
+            tf += f'    }},\n'
+        tf += f'  ]\n'
+        
     tf += f'}}\n'
     return tf
 
@@ -252,145 +295,151 @@ def main():
             
             if not target_url or not is_valid:
                 st.error("Invalid URL format. Please paste a clean web URL (e.g., `https://www.amazon.in/s?k=iphone+17+pro`).")
-                return
+            else:
+                config = EngineConfig(
+                    headless=headless_mode,
+                    proxy_server=proxy_server if proxy_server.strip() else None,
+                    user_agent=user_agent if user_agent.strip() else None
+                )
+                scraper = ModularScraper(config=config)
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-            # Build EngineConfig from UI parameters
-            config = EngineConfig(
-                headless=headless_mode,
-                proxy_server=proxy_server if proxy_server.strip() else None,
-                user_agent=user_agent if user_agent.strip() else None
-            )
-
-            scraper = ModularScraper(config=config)
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-
-            if scrape_mode == "Direct Scrape":
-                with st.spinner("⏳ Running Direct Scrape via Headless Engine..."):
-                    try:
-                        raw_text = run_async_task(scraper.run_direct_scrape(target_url))
-                        st.success("Direct scrape completed successfully!")
-                        
-                        # Save record to Database
-                        record_id = save_scrape_record(
-                            url=target_url,
-                            mode="Direct Scrape",
-                            raw_text=raw_text,
-                            summary=f"Direct text scrape of {target_url}"
-                        )
-                        st.caption(f"💾 Saved record to Database (ID: `{record_id}`)")
-
-                        st.subheader("📄 Raw Extracted Text")
-                        st.code(raw_text[:2000] + ("\n... [truncated for display]" if len(raw_text) > 2000 else ""), language="text")
-
-                        # Download options
-                        st.markdown("---")
-                        st.subheader("💾 Export Options")
-                        
-                        format_type = st.selectbox(
-                            "Select Export Format:",
-                            options=["Text (.txt)", "Markdown (.md)", "JSON (.json)", "CSV (.csv)", "Terraform (.tf)"],
-                            key="direct_format_select"
-                        )
-                        
-                        if format_type == "Text (.txt)":
-                            st.download_button("📥 Download Text File", data=raw_text, file_name=f"direct_{timestamp}.txt", mime="text/plain")
-                        elif format_type == "Markdown (.md)":
-                            md_str = f"# Direct Scrape Output\n\n**URL:** [{target_url}]({target_url})\n\n```text\n{raw_text}\n```"
-                            st.download_button("📝 Download Markdown File", data=md_str, file_name=f"direct_{timestamp}.md", mime="text/markdown")
-                        elif format_type == "JSON (.json)":
-                            json_str = json.dumps({"url": target_url, "raw_text": raw_text}, indent=2)
-                            st.download_button("📥 Download JSON File", data=json_str, file_name=f"direct_{timestamp}.json", mime="application/json")
-                        elif format_type == "CSV (.csv)":
-                            csv_str = generate_csv_data({"raw_text": raw_text[:5000]})
-                            st.download_button("📊 Download CSV File", data=csv_str, file_name=f"direct_{timestamp}.csv", mime="text/csv")
-                        elif format_type == "Terraform (.tf)":
-                            tf_str = generate_terraform_data(f"Direct Scrape of {target_url}", {"raw_text_snippet": raw_text[:500]}, target_url)
-                            st.download_button("🏗️ Download Terraform File", data=tf_str, file_name=f"direct_{timestamp}.tf", mime="text/plain")
-
-                    except Exception as e:
-                        st.error(f"Scraping Error: {str(e)}")
-
-            elif scrape_mode == "Agentic Scrape":
-                if not prompt.strip():
-                    st.warning("Please provide an Intent Prompt for Agentic Scrape.")
-                    return
-
-                if not effective_api_key:
-                    st.error("Gemini API Key is missing. Please set `GEMINI_API_KEY` in your `.env` file or enter it in the sidebar.")
-                    return
-
-                with st.spinner(f"🤖 Executing Agentic Scrape (Browser Extraction + {gemini_model} Structuring)..."):
-                    try:
-                        result = run_async_task(
-                            scraper.run_agentic_scrape(
+                if scrape_mode == "Direct Scrape":
+                    with st.spinner("⏳ Running Direct Scrape via Headless Engine..."):
+                        try:
+                            raw_text = run_async_task(scraper.run_direct_scrape(target_url))
+                            record_id = save_scrape_record(
                                 url=target_url,
-                                prompt=prompt,
-                                gemini_api_key=effective_api_key,
-                                model_name=gemini_model
+                                mode="Direct Scrape",
+                                raw_text=raw_text,
+                                summary=f"Direct text scrape of {target_url}"
                             )
-                        )
-                        st.success("Agentic scrape completed successfully!")
-                        
-                        result_dict = result.to_dict()
-                        
-                        # Save record to Database
-                        record_id = save_scrape_record(
-                            url=target_url,
-                            mode="Agentic Scrape",
-                            prompt=prompt,
-                            summary=result.summary,
-                            results=result_dict.get("results", {})
-                        )
-                        st.caption(f"💾 Saved record to Database (ID: `{record_id}`)")
+                            st.session_state.current_scrape = {
+                                "mode": "Direct Scrape",
+                                "raw_text": raw_text,
+                                "target_url": target_url,
+                                "timestamp": timestamp,
+                                "record_id": record_id
+                            }
+                        except Exception as e:
+                            st.error(f"Scraping Error: {str(e)}")
 
-                        st.subheader("📊 Structured JSON Result")
-                        st.json(result_dict)
+                elif scrape_mode == "Agentic Scrape":
+                    if not prompt.strip():
+                        st.warning("Please provide an Intent Prompt for Agentic Scrape.")
+                    elif not effective_api_key:
+                        st.error("Gemini API Key is missing. Please set `GEMINI_API_KEY` in your `.env` file or enter it in the sidebar.")
+                    else:
+                        with st.spinner(f"🤖 Executing Agentic Scrape (Browser Extraction + {gemini_model} Structuring)..."):
+                            try:
+                                result = run_async_task(
+                                    scraper.run_agentic_scrape(
+                                        url=target_url,
+                                        prompt=prompt,
+                                        gemini_api_key=effective_api_key,
+                                        model_name=gemini_model
+                                    )
+                                )
+                                result_dict = result.to_dict()
+                                summary = result.summary
+                                results = result.results
+                                record_id = save_scrape_record(
+                                    url=target_url,
+                                    mode="Agentic Scrape",
+                                    prompt=prompt,
+                                    summary=summary,
+                                    results=results
+                                )
+                                st.session_state.current_scrape = {
+                                    "mode": "Agentic Scrape",
+                                    "result_dict": result_dict,
+                                    "summary": summary,
+                                    "results": results,
+                                    "target_url": target_url,
+                                    "timestamp": timestamp,
+                                    "record_id": record_id
+                                }
+                            except Exception as e:
+                                st.error(f"Agentic Scraping Error: {str(e)}")
 
-                        with st.expander("📝 Summary", expanded=True):
-                            st.write(result.summary)
+        if "current_scrape" in st.session_state:
+            scrape_data = st.session_state.current_scrape
+            
+            if scrape_data["mode"] == "Direct Scrape":
+                st.success("Direct scrape completed successfully!")
+                st.caption(f"💾 Saved record to Database (ID: `{scrape_data['record_id']}`)")
+                st.subheader("📄 Raw Extracted Text")
+                raw_text = scrape_data['raw_text']
+                target_url = scrape_data['target_url']
+                timestamp = scrape_data['timestamp']
+                st.code(raw_text[:2000] + ("\n... [truncated for display]" if len(raw_text) > 2000 else ""), language="text")
+                st.markdown("---")
+                st.subheader("💾 Export Options")
+                format_type = st.selectbox(
+                    "Select Export Format:",
+                    options=["Text (.txt)", "Markdown (.md)", "JSON (.json)", "CSV (.csv)", "Terraform (.tf)"],
+                    key="direct_format_select"
+                )
+                if format_type == "Text (.txt)":
+                    st.download_button("📥 Download Text File", data=raw_text, file_name=f"direct_{timestamp}.txt", mime="text/plain")
+                elif format_type == "Markdown (.md)":
+                    md_str = f"# Direct Scrape Output\n\n**URL:** [{target_url}]({target_url})\n\n```text\n{raw_text}\n```"
+                    st.download_button("📝 Download Markdown File", data=md_str, file_name=f"direct_{timestamp}.md", mime="text/markdown")
+                elif format_type == "JSON (.json)":
+                    json_str = json.dumps({"url": target_url, "raw_text": raw_text}, indent=2)
+                    st.download_button("📥 Download JSON File", data=json_str, file_name=f"direct_{timestamp}.json", mime="application/json")
+                elif format_type == "CSV (.csv)":
+                    csv_str = generate_csv_data({"raw_text": raw_text[:5000]})
+                    st.download_button("📊 Download CSV File", data=csv_str, file_name=f"direct_{timestamp}.csv", mime="text/csv")
+                elif format_type == "Terraform (.tf)":
+                    tf_str = generate_terraform_data(f"Direct Scrape of {target_url}", {"raw_text_snippet": raw_text[:500]}, target_url)
+                    st.download_button("🏗️ Download Terraform File", data=tf_str, file_name=f"direct_{timestamp}.tf", mime="text/plain")
 
-                        # Formatted Exports
-                        json_data = json.dumps(result_dict, indent=2)
-                        csv_data = generate_csv_data(result.results)
-                        md_data = generate_markdown_data(result.summary, result.results, target_url)
-                        tf_data = generate_terraform_data(result.summary, result.results, target_url)
-                        txt_data = f"SUMMARY:\n{result.summary}\n\nEXTRACTED DATA:\n{json_data}"
+            elif scrape_data["mode"] == "Agentic Scrape":
+                st.success("Agentic scrape completed successfully!")
+                st.caption(f"💾 Saved record to Database (ID: `{scrape_data['record_id']}`)")
+                
+                result_dict = scrape_data["result_dict"]
+                target_url = scrape_data["target_url"]
+                timestamp = scrape_data["timestamp"]
+                summary = scrape_data["summary"]
+                results = scrape_data["results"]
 
-                        # Format Selector UI
-                        st.markdown("---")
-                        st.subheader("💾 Export Data")
-                        
-                        sel_col1, sel_col2 = st.columns([1, 1])
-                        
-                        with sel_col1:
-                            export_format = st.selectbox(
-                                "Choose Download Format:",
-                                options=[
-                                    "CSV Spreadsheet (.csv)", 
-                                    "JSON (.json)", 
-                                    "Text Summary (.txt)", 
-                                    "Markdown Report (.md)", 
-                                    "Terraform (.tf)"
-                                ],
-                                index=0
-                            )
-                        
-                        with sel_col2:
-                            st.write("") # spacing
-                            st.write("")
-                            if export_format == "CSV Spreadsheet (.csv)":
-                                st.download_button("📊 Download CSV File", data=csv_data, file_name=f"scrape_{timestamp}.csv", mime="text/csv", use_container_width=True)
-                            elif export_format == "JSON (.json)":
-                                st.download_button("📥 Download JSON File", data=json_data, file_name=f"scrape_{timestamp}.json", mime="application/json", use_container_width=True)
-                            elif export_format == "Text Summary (.txt)":
-                                st.download_button("📄 Download Text File", data=txt_data, file_name=f"scrape_{timestamp}.txt", mime="text/plain", use_container_width=True)
-                            elif export_format == "Markdown Report (.md)":
-                                st.download_button("📝 Download Markdown File", data=md_data, file_name=f"scrape_{timestamp}.md", mime="text/markdown", use_container_width=True)
-                            elif export_format == "Terraform (.tf)":
-                                st.download_button("🏗️ Download Terraform File", data=tf_data, file_name=f"scrape_{timestamp}.tf", mime="text/plain", use_container_width=True)
+                st.subheader("📊 Structured JSON Result")
+                st.json(result_dict)
 
-                    except Exception as e:
-                        st.error(f"Agentic Scraping Error: {str(e)}")
+                with st.expander("📝 Summary", expanded=True):
+                    st.write(summary)
+
+                json_data = json.dumps(result_dict, indent=2)
+                csv_data = generate_csv_data(results)
+                md_data = generate_markdown_data(summary, results, target_url)
+                tf_data = generate_terraform_data(summary, results, target_url)
+                txt_data = f"SUMMARY:\n{summary}\n\nEXTRACTED DATA:\n{json_data}"
+
+                st.markdown("---")
+                st.subheader("💾 Export Data")
+                
+                sel_col1, sel_col2 = st.columns([1, 1])
+                with sel_col1:
+                    export_format = st.selectbox(
+                        "Choose Download Format:",
+                        options=["CSV Spreadsheet (.csv)", "JSON (.json)", "Text Summary (.txt)", "Markdown Report (.md)", "Terraform (.tf)"],
+                        index=0
+                    )
+                with sel_col2:
+                    st.write("")
+                    st.write("")
+                    if export_format == "CSV Spreadsheet (.csv)":
+                        st.download_button("📊 Download CSV File", data=csv_data, file_name=f"scrape_{timestamp}.csv", mime="text/csv", use_container_width=True)
+                    elif export_format == "JSON (.json)":
+                        st.download_button("📥 Download JSON File", data=json_data, file_name=f"scrape_{timestamp}.json", mime="application/json", use_container_width=True)
+                    elif export_format == "Text Summary (.txt)":
+                        st.download_button("📄 Download Text File", data=txt_data, file_name=f"scrape_{timestamp}.txt", mime="text/plain", use_container_width=True)
+                    elif export_format == "Markdown Report (.md)":
+                        st.download_button("📝 Download Markdown File", data=md_data, file_name=f"scrape_{timestamp}.md", mime="text/markdown", use_container_width=True)
+                    elif export_format == "Terraform (.tf)":
+                        st.download_button("🏗️ Download Terraform File", data=tf_data, file_name=f"scrape_{timestamp}.tf", mime="text/plain", use_container_width=True)
 
     with tab_history:
         st.subheader("📜 Stored Scrape Records")

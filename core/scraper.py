@@ -1,5 +1,6 @@
 import os
 import asyncio
+import json
 from typing import Dict, Any, List, Optional
 from pydantic import BaseModel, Field
 from google import genai
@@ -8,27 +9,37 @@ from google.genai import types
 from .engine import BrowserEngine, EngineConfig
 
 
-class ExtractedItem(BaseModel):
-    """Individual extracted key-value pair, compatible with Gemini schema constraints."""
-    key: str = Field(description="Name or label of the extracted data field")
-    value: str = Field(description="Extracted value or text content for this field")
-
-
 class AgenticScrapeResult(BaseModel):
-    """Strict Pydantic model for structured LLM extraction output (Gemini Developer API compliant)."""
+    """Strict Pydantic model for structured LLM extraction output."""
     summary: str = Field(description="Summary of the extracted information or findings")
-    extracted_data: List[ExtractedItem] = Field(
-        default_factory=list, 
-        description="List of key-value data fields extracted from the page text"
-    )
+    results_json: str = Field(description="A raw JSON string representing the extracted data. IMPORTANT: MUST be a list of objects, e.g. [{\"title\": \"A\"}]. Do NOT wrap in markdown blocks.")
 
     @property
-    def results(self) -> Dict[str, str]:
-        """Convert extracted items list to a standard dictionary."""
-        return {item.key: item.value for item in self.extracted_data}
+    def results(self) -> List[Dict[str, Any]]:
+        """Parse the JSON string into a Python list of dictionaries."""
+        try:
+            clean_str = self.results_json.strip()
+            if clean_str.startswith("```json"):
+                clean_str = clean_str[7:]
+            elif clean_str.startswith("```"):
+                clean_str = clean_str[3:]
+            if clean_str.endswith("```"):
+                clean_str = clean_str[:-3]
+            
+            data = json.loads(clean_str.strip())
+            
+            # Guarantee it's a list for tabular consistency
+            if isinstance(data, dict):
+                return [data]
+            elif isinstance(data, list):
+                return data
+            else:
+                return [{"value": str(data)}]
+        except Exception:
+            return []
 
     def to_dict(self) -> Dict[str, Any]:
-        """Return clean dictionary representation with summary and results dictionary."""
+        """Return clean dictionary representation with summary and results list."""
         return {
             "summary": self.summary,
             "results": self.results
