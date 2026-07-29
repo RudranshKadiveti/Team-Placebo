@@ -1,4 +1,5 @@
 import os
+import asyncio
 from typing import Dict, Any, List, Optional
 from pydantic import BaseModel, Field
 from google import genai
@@ -76,11 +77,9 @@ class ModularScraper:
         url: str, 
         prompt: str, 
         gemini_api_key: Optional[str] = None,
-        model_name: str = "gemini-2.5-pro"
+        model_name: str = "gemini-2.5-flash"
     ) -> AgenticScrapeResult:
-        """Mode 2: Agentic Scrape via Gemini Pro.
-        Performs direct scrape to obtain page text, then uses Google Gemini Pro to extract structured data.
-        """
+        """Mode 2: Agentic Scrape via Gemini with automatic token trimming and rate-limit model fallback."""
         # Step 1: Extract page content via direct scrape
         raw_text = await self.run_direct_scrape(url)
         
@@ -91,28 +90,45 @@ class ModularScraper:
         
         client = genai.Client(api_key=api_key)
         
-        # Truncate text if excessively long to stay within context limits
-        max_chars = 100000
+        # Trim text to ~15,000 characters (~3,500 tokens) to easily stay within free tier rate limits
+        max_chars = 15000
         truncated_text = raw_text[:max_chars] if len(raw_text) > max_chars else raw_text
 
         contents = f"Extraction Instructions:\n{prompt}\n\nWeb Page Text Content:\n{truncated_text}"
 
-        # Step 2: Extract structured output via Gemini Pro with Gemini-compliant Pydantic schema
-        response = client.models.generate_content(
-            model=model_name,
-            contents=contents,
-            config=types.GenerateContentConfig(
-                system_instruction=(
-                    "You are an expert web scraping and data extraction assistant. "
-                    "Analyze the provided web page text and extract the requested information into structured key-value items. "
-                    "Provide a concise summary and list of extracted key-value data."
-                ),
-                response_mime_type="application/json",
-                response_schema=AgenticScrapeResult,
-            ),
-        )
+        # Candidate model list to fallback automatically if 429 / RESOURCE_EXHAUSTED occurs
+        candidate_models = [model_name]
+        for fallback in ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-2.5-pro"]:
+            if fallback not in candidate_models:
+                candidate_models.append(fallback)
 
-        if not response.text:
-            raise RuntimeError("Empty response received from Gemini API.")
-            
-        return AgenticScrapeResult.model_validate_json(response.text)
+        last_error = None
+        for current_model in candidate_models:
+            try:
+                response = client.models.generate_content(
+                    model=current_model,
+                    contents=contents,
+                    config=types.GenerateContentConfig(
+                        system_instruction=(
+                            "You are an expert web scraping and data extraction assistant. "
+                            "Analyze the provided web page text and extract the requested information into structured key-value items. "
+                            "Provide a concise summary and list of extracted key-value data."
+                        ),
+                        response_mime_type="application/json",
+                        response_schema=AgenticScrapeResult,
+                    ),
+                )
+                if response.text:
+                    return AgenticScrapeResult.model_validate_json(response.text)
+            except Exception as e:
+                last_error = e
+                err_str = str(e)
+                if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
+                    await asyncio.sleep(2)
+                    continue
+                else:
+                    raise e
+
+        if last_error:
+            raise last_error
+        raise RuntimeError("Failed to generate response from Gemini API.")

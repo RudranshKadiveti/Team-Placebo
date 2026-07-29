@@ -99,7 +99,7 @@ def run_async_task(coro):
 
 def main():
     st.markdown('<div class="main-header">Modular Scraping Microservice</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-header">Decoupled Playwright Engine & Gemini Pro Agentic Extraction</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sub-header">Decoupled Playwright Engine & Gemini Agentic Extraction</div>', unsafe_allow_html=True)
 
     # Sidebar Configurations
     st.sidebar.title("⚙️ Engine Settings")
@@ -125,9 +125,9 @@ def main():
 
     gemini_model = st.sidebar.selectbox(
         "Gemini Model",
-        options=["gemini-2.5-pro", "gemini-1.5-pro", "gemini-2.5-flash"],
+        options=["gemini-2.5-flash", "gemini-1.5-flash", "gemini-2.5-pro"],
         index=0,
-        help="Select Gemini model version"
+        help="gemini-2.5-flash has high free-tier rate limits and fast execution."
     )
 
     headless_mode = st.sidebar.toggle(
@@ -165,7 +165,7 @@ def main():
         scrape_mode = st.radio(
             "Extraction Mode",
             options=["Direct Scrape", "Agentic Scrape"],
-            help="Direct mode returns raw innerText. Agentic mode extracts structured JSON via Gemini Pro."
+            help="Direct mode returns raw innerText. Agentic mode extracts structured JSON via Gemini."
         )
 
     prompt = ""
@@ -174,7 +174,7 @@ def main():
             "Intent Prompt",
             placeholder="e.g., Extract all product names, prices, and ratings from the page into structured JSON.",
             height=120,
-            help="Specify what structured data you want Gemini Pro to extract from the webpage text."
+            help="Specify what structured data you want Gemini to extract from the webpage text."
         )
 
     start_button = st.button("🚀 Start Scraping", use_container_width=False)
