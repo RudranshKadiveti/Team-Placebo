@@ -189,9 +189,9 @@ def main():
 
     gemini_model = st.sidebar.selectbox(
         "Gemini Model",
-        options=["gemini-2.5-flash", "gemini-1.5-flash", "gemini-2.5-pro"],
+        options=["gemini-flash-latest", "gemini-3.6-flash", "gemini-2.0-flash", "gemini-3.5-flash"],
         index=0,
-        help="gemini-2.5-flash has high free-tier rate limits and fast execution."
+        help="gemini-flash-latest resolves to the latest fast Flash model."
     )
 
     headless_mode = st.sidebar.toggle(

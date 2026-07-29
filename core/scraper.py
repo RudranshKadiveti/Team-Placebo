@@ -77,7 +77,7 @@ class ModularScraper:
         url: str, 
         prompt: str, 
         gemini_api_key: Optional[str] = None,
-        model_name: str = "gemini-2.5-flash"
+        model_name: str = "gemini-flash-latest"
     ) -> AgenticScrapeResult:
         """Mode 2: Agentic Scrape via Gemini with automatic token trimming and rate-limit model fallback."""
         # Step 1: Extract page content via direct scrape
@@ -96,9 +96,9 @@ class ModularScraper:
 
         contents = f"Extraction Instructions:\n{prompt}\n\nWeb Page Text Content:\n{truncated_text}"
 
-        # Candidate model list to fallback automatically if 429 / RESOURCE_EXHAUSTED occurs
+        # Valid candidate models list for seamless fallback
         candidate_models = [model_name]
-        for fallback in ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-2.5-pro"]:
+        for fallback in ["gemini-flash-latest", "gemini-3.6-flash", "gemini-2.0-flash", "gemini-3.5-flash"]:
             if fallback not in candidate_models:
                 candidate_models.append(fallback)
 
@@ -123,8 +123,8 @@ class ModularScraper:
             except Exception as e:
                 last_error = e
                 err_str = str(e)
-                if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
-                    await asyncio.sleep(2)
+                if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str or "404" in err_str or "NOT_FOUND" in err_str:
+                    await asyncio.sleep(1)
                     continue
                 else:
                     raise e
