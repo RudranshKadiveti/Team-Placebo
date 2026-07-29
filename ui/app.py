@@ -2,7 +2,11 @@ import os
 import sys
 import asyncio
 import re
+import csv
+import json
+import io
 import importlib
+from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlparse
 import streamlit as st
@@ -12,6 +16,10 @@ from dotenv import load_dotenv
 project_root = Path(__file__).resolve().parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
+
+# Storage directory path
+storage_dir = project_root / "storage"
+storage_dir.mkdir(exist_ok=True)
 
 # Import core modules with force-reload to ensure changes take effect without full server restart
 import core.engine
@@ -62,6 +70,13 @@ st.markdown("""
         opacity: 0.9;
         transform: translateY(-1px);
     }
+    .download-section {
+        background-color: #1e293b;
+        padding: 1.2rem;
+        border-radius: 10px;
+        margin-top: 1.5rem;
+        border: 1px solid #334155;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -95,6 +110,16 @@ def run_async_task(coro):
         return loop.run_until_complete(coro)
     finally:
         loop.close()
+
+
+def generate_csv_data(results_dict: dict) -> str:
+    """Convert a dictionary into CSV string format."""
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Field Name / Key", "Extracted Value"])
+    for key, val in results_dict.items():
+        writer.writerow([key, str(val)])
+    return output.getvalue()
 
 
 def main():
@@ -194,6 +219,7 @@ def main():
         )
 
         scraper = ModularScraper(config=config)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
         if scrape_mode == "Direct Scrape":
             with st.spinner("⏳ Running Direct Scrape via Headless Engine..."):
@@ -202,7 +228,21 @@ def main():
                     st.success("Direct scrape completed successfully!")
                     
                     st.subheader("📄 Raw Extracted Text")
-                    st.code(raw_text, language="text")
+                    st.code(raw_text[:2000] + ("\n... [truncated for display]" if len(raw_text) > 2000 else ""), language="text")
+
+                    # Auto-save to storage directory
+                    saved_path = storage_dir / f"direct_scrape_{timestamp}.txt"
+                    saved_path.write_text(raw_text, encoding="utf-8")
+
+                    # Download options
+                    st.markdown("---")
+                    st.subheader("💾 Export & Download Options")
+                    st.download_button(
+                        label="📥 Download Raw Text (.txt)",
+                        data=raw_text,
+                        file_name=f"direct_scrape_{timestamp}.txt",
+                        mime="text/plain"
+                    )
                 except Exception as e:
                     st.error(f"Scraping Error: {str(e)}")
 
@@ -227,11 +267,58 @@ def main():
                     )
                     st.success("Agentic scrape completed successfully!")
                     
+                    result_dict = result.to_dict()
                     st.subheader("📊 Structured JSON Result")
-                    st.json(result.to_dict())
+                    st.json(result_dict)
 
                     with st.expander("📝 Summary", expanded=True):
                         st.write(result.summary)
+
+                    # Prepare Formatted Exports
+                    json_data = json.dumps(result_dict, indent=2)
+                    csv_data = generate_csv_data(result.results)
+                    txt_data = f"SUMMARY:\n{result.summary}\n\nEXTRACTED DATA:\n{json_data}"
+
+                    # Auto-save to storage directory
+                    json_save_path = storage_dir / f"agentic_scrape_{timestamp}.json"
+                    json_save_path.write_text(json_data, encoding="utf-8")
+
+                    csv_save_path = storage_dir / f"agentic_scrape_{timestamp}.csv"
+                    csv_save_path.write_text(csv_data, encoding="utf-8")
+
+                    # Download Buttons UI
+                    st.markdown("---")
+                    st.subheader("💾 Export & Download Options")
+                    
+                    d_col1, d_col2, d_col3 = st.columns(3)
+                    
+                    with d_col1:
+                        st.download_button(
+                            label="📥 Download JSON (.json)",
+                            data=json_data,
+                            file_name=f"scrape_{timestamp}.json",
+                            mime="application/json",
+                            use_container_width=True
+                        )
+                    
+                    with d_col2:
+                        st.download_button(
+                            label="📊 Download CSV (.csv)",
+                            data=csv_data,
+                            file_name=f"scrape_{timestamp}.csv",
+                            mime="text/csv",
+                            use_container_width=True
+                        )
+                    
+                    with d_col3:
+                        st.download_button(
+                            label="📄 Download Summary (.txt)",
+                            data=txt_data,
+                            file_name=f"scrape_{timestamp}.txt",
+                            mime="text/plain",
+                            use_container_width=True
+                        )
+
                 except Exception as e:
                     st.error(f"Agentic Scraping Error: {str(e)}")
 
