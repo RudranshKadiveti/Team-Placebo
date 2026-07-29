@@ -82,6 +82,13 @@ st.markdown("""
         opacity: 0.9;
         transform: translateY(-1px);
     }
+    .export-card {
+        background-color: #1e293b;
+        padding: 1.2rem;
+        border-radius: 10px;
+        margin-top: 1rem;
+        border: 1px solid #334155;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -125,6 +132,64 @@ def generate_csv_data(results_dict: dict) -> str:
     for key, val in results_dict.items():
         writer.writerow([key, str(val)])
     return output.getvalue()
+
+
+def generate_markdown_data(summary: str, results_dict: dict, url: str) -> str:
+    """Convert extracted results into clean Markdown document format."""
+    md = f"# Web Scrape Report\n\n"
+    md += f"**Source URL:** [{url}]({url})\n"
+    md += f"**Generated:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
+    md += f"## Executive Summary\n\n{summary}\n\n"
+    md += f"## Extracted Data Results\n\n"
+    md += f"| Field / Attribute | Value |\n"
+    md += f"| :--- | :--- |\n"
+    for k, v in results_dict.items():
+        clean_k = str(k).replace("|", "\\|")
+        clean_v = str(v).replace("|", "\\|").replace("\n", " ")
+        md += f"| **{clean_k}** | {clean_v} |\n"
+    return md
+
+
+def generate_html_data(summary: str, results_dict: dict, url: str) -> str:
+    """Convert extracted results into a styled standalone HTML report."""
+    rows = "".join([
+        f"<tr><td style='padding: 8px 12px; border: 1px solid #ddd; font-weight: bold;'>{k}</td>"
+        f"<td style='padding: 8px 12px; border: 1px solid #ddd;'>{v}</td></tr>"
+        for k, v in results_dict.items()
+    ])
+    html = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Web Scrape Report</title>
+    <style>
+        body {{ font-family: Arial, sans-serif; margin: 30px; background-color: #f8fafc; color: #1e293b; }}
+        .card {{ background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom: 20px; }}
+        h1 {{ color: #4285f4; margin-top: 0; }}
+        table {{ width: 100%; border-collapse: collapse; margin-top: 15px; }}
+        th {{ background-color: #4285f4; color: white; padding: 10px; text-align: left; }}
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>🕸️ Web Scrape Report</h1>
+        <p><strong>URL:</strong> <a href="{url}" target="_blank">{url}</a></p>
+        <p><strong>Summary:</strong> {summary}</p>
+    </div>
+    <div class="card">
+        <h2>Extracted Results</h2>
+        <table>
+            <thead>
+                <tr><th>Attribute</th><th>Extracted Value</th></tr>
+            </thead>
+            <tbody>
+                {rows}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>"""
+    return html
 
 
 def main():
@@ -179,7 +244,7 @@ def main():
     )
 
     st.sidebar.markdown("---")
-    st.sidebar.info("💡 **Decoupled Architecture**: Database persistence initialized with PostgreSQL & SQLite support.")
+    st.sidebar.info("💡 **Decoupled Architecture**: Select your preferred export format (JSON, CSV, Markdown, Text, HTML).")
 
     # Tabs for Main Interface and Database History
     tab_scrape, tab_history = st.tabs(["🚀 New Scrape", "📜 Database & History"])
@@ -250,13 +315,23 @@ def main():
 
                         # Download options
                         st.markdown("---")
-                        st.subheader("💾 Export & Download Options")
-                        st.download_button(
-                            label="📥 Download Raw Text (.txt)",
-                            data=raw_text,
-                            file_name=f"direct_scrape_{timestamp}.txt",
-                            mime="text/plain"
+                        st.subheader("💾 Export Options")
+                        
+                        format_type = st.selectbox(
+                            "Select Export Format:",
+                            options=["Plain Text (.txt)", "Markdown (.md)", "HTML Page (.html)"],
+                            key="direct_format_select"
                         )
+                        
+                        if format_type == "Plain Text (.txt)":
+                            st.download_button("📥 Download Text File", data=raw_text, file_name=f"direct_{timestamp}.txt", mime="text/plain")
+                        elif format_type == "Markdown (.md)":
+                            md_str = f"# Direct Scrape Output\n\n**URL:** [{target_url}]({target_url})\n\n```text\n{raw_text}\n```"
+                            st.download_button("📝 Download Markdown File", data=md_str, file_name=f"direct_{timestamp}.md", mime="text/markdown")
+                        elif format_type == "HTML Page (.html)":
+                            html_str = f"<html><body><h1>Scraped Text</h1><p><b>URL:</b> {target_url}</p><pre>{raw_text}</pre></body></html>"
+                            st.download_button("🌐 Download HTML File", data=html_str, file_name=f"direct_{timestamp}.html", mime="text/html")
+
                     except Exception as e:
                         st.error(f"Scraping Error: {str(e)}")
 
@@ -299,43 +374,45 @@ def main():
                         with st.expander("📝 Summary", expanded=True):
                             st.write(result.summary)
 
-                        # Prepare Formatted Exports
+                        # Formatted Exports
                         json_data = json.dumps(result_dict, indent=2)
                         csv_data = generate_csv_data(result.results)
+                        md_data = generate_markdown_data(result.summary, result.results, target_url)
+                        html_data = generate_html_data(result.summary, result.results, target_url)
                         txt_data = f"SUMMARY:\n{result.summary}\n\nEXTRACTED DATA:\n{json_data}"
 
-                        # Download Buttons UI
+                        # Format Selector UI
                         st.markdown("---")
-                        st.subheader("💾 Export & Download Options")
+                        st.subheader("💾 Export Data")
                         
-                        d_col1, d_col2, d_col3 = st.columns(3)
+                        sel_col1, sel_col2 = st.columns([1, 1])
                         
-                        with d_col1:
-                            st.download_button(
-                                label="📥 Download JSON (.json)",
-                                data=json_data,
-                                file_name=f"scrape_{timestamp}.json",
-                                mime="application/json",
-                                use_container_width=True
+                        with sel_col1:
+                            export_format = st.selectbox(
+                                "Choose Download Format:",
+                                options=[
+                                    "JSON (.json)", 
+                                    "CSV Spreadsheet (.csv)", 
+                                    "Markdown Report (.md)", 
+                                    "HTML Webpage (.html)", 
+                                    "Text Summary (.txt)"
+                                ],
+                                index=0
                             )
                         
-                        with d_col2:
-                            st.download_button(
-                                label="📊 Download CSV (.csv)",
-                                data=csv_data,
-                                file_name=f"scrape_{timestamp}.csv",
-                                mime="text/csv",
-                                use_container_width=True
-                            )
-                        
-                        with d_col3:
-                            st.download_button(
-                                label="📄 Download Summary (.txt)",
-                                data=txt_data,
-                                file_name=f"scrape_{timestamp}.txt",
-                                mime="text/plain",
-                                use_container_width=True
-                            )
+                        with sel_col2:
+                            st.write("") # spacing
+                            st.write("")
+                            if export_format == "JSON (.json)":
+                                st.download_button("📥 Download JSON File", data=json_data, file_name=f"scrape_{timestamp}.json", mime="application/json", use_container_width=True)
+                            elif export_format == "CSV Spreadsheet (.csv)":
+                                st.download_button("📊 Download CSV File", data=csv_data, file_name=f"scrape_{timestamp}.csv", mime="text/csv", use_container_width=True)
+                            elif export_format == "Markdown Report (.md)":
+                                st.download_button("📝 Download Markdown File", data=md_data, file_name=f"scrape_{timestamp}.md", mime="text/markdown", use_container_width=True)
+                            elif export_format == "HTML Webpage (.html)":
+                                st.download_button("🌐 Download HTML Report", data=html_data, file_name=f"scrape_{timestamp}.html", mime="text/html", use_container_width=True)
+                            elif export_format == "Text Summary (.txt)":
+                                st.download_button("📄 Download Text File", data=txt_data, file_name=f"scrape_{timestamp}.txt", mime="text/plain", use_container_width=True)
 
                     except Exception as e:
                         st.error(f"Agentic Scraping Error: {str(e)}")
@@ -368,26 +445,26 @@ def main():
 
                     if results:
                         st.json(results)
-                        json_str = json.dumps(results, indent=2)
-                        csv_str = generate_csv_data(results)
+                        
+                        rec_json = json.dumps(results, indent=2)
+                        rec_csv = generate_csv_data(results)
+                        rec_md = generate_markdown_data(summary, results, url)
+                        rec_html = generate_html_data(summary, results, url)
 
-                        h_col1, h_col2 = st.columns(2)
-                        with h_col1:
-                            st.download_button(
-                                label=f"📥 Download JSON (Record #{rec_id})",
-                                data=json_str,
-                                file_name=f"record_{rec_id}.json",
-                                mime="application/json",
-                                key=f"dl_json_{rec_id}"
-                            )
-                        with h_col2:
-                            st.download_button(
-                                label=f"📊 Download CSV (Record #{rec_id})",
-                                data=csv_str,
-                                file_name=f"record_{rec_id}.csv",
-                                mime="text/csv",
-                                key=f"dl_csv_{rec_id}"
-                            )
+                        h_fmt = st.selectbox(
+                            f"Export Format for Record #{rec_id}:",
+                            options=["JSON (.json)", "CSV (.csv)", "Markdown (.md)", "HTML (.html)"],
+                            key=f"fmt_sel_{rec_id}"
+                        )
+
+                        if h_fmt == "JSON (.json)":
+                            st.download_button(f"📥 Download JSON (Record #{rec_id})", data=rec_json, file_name=f"record_{rec_id}.json", mime="application/json", key=f"dl_json_{rec_id}")
+                        elif h_fmt == "CSV (.csv)":
+                            st.download_button(f"📊 Download CSV (Record #{rec_id})", data=rec_csv, file_name=f"record_{rec_id}.csv", mime="text/csv", key=f"dl_csv_{rec_id}")
+                        elif h_fmt == "Markdown (.md)":
+                            st.download_button(f"📝 Download Markdown (Record #{rec_id})", data=rec_md, file_name=f"record_{rec_id}.md", mime="text/markdown", key=f"dl_md_{rec_id}")
+                        elif h_fmt == "HTML (.html)":
+                            st.download_button(f"🌐 Download HTML (Record #{rec_id})", data=rec_html, file_name=f"record_{rec_id}.html", mime="text/html", key=f"dl_html_{rec_id}")
 
 
 if __name__ == "__main__":
