@@ -42,7 +42,7 @@ A plug-and-play, decoupled web scraping microservice featuring an asynchronous h
 │   └── __init__.py     # Core Package Initializer
 ├── ui/
 │   └── app.py          # Interactive Streamlit Web Interface & Multi-Format Downloader
-├── storage/            # Local data persistence & SQLite database directory
+├── storage/            # Local data persistence & PostgreSQL database directory
 ├── .env                # Environment variables configuration
 ├── .gitignore          # Git ignore rules
 ├── Dockerfile          # Docker image specification with Playwright Chromium
