@@ -149,6 +149,20 @@ def generate_csv_data(results_dict: dict) -> str:
     return output.getvalue()
 
 
+def generate_plain_text_output(summary: str, results_dict: dict) -> str:
+    """Format summary and extracted dictionary into a clean human-readable plain text block."""
+    txt = f"EXECUTIVE SUMMARY:\n{summary}\n\n"
+    txt += "EXTRACTED DATA FIELDS:\n"
+    txt += "=" * 40 + "\n"
+    for k, v in results_dict.items():
+        if isinstance(v, (dict, list)):
+            v_str = json.dumps(v, indent=2)
+        else:
+            v_str = str(v)
+        txt += f"• {k}: {v_str}\n"
+    return txt
+
+
 def generate_markdown_data(summary: str, results_dict: dict, url_or_filename: str) -> str:
     """Convert extracted results into clean Markdown document format."""
     md = f"# Extraction Report\n\n"
@@ -241,7 +255,7 @@ def main():
     )
 
     st.sidebar.markdown("---")
-    st.sidebar.info("💡 **Export Formats**: CSV, JSON, Text, Markdown, and Terraform (.tf).")
+    st.sidebar.info("💡 **Export Formats**: JSON, Text, CSV, Markdown, and Terraform (.tf).")
 
     # Tabs for Web Scrape, Resume Parser, and Database History
     tab_scrape, tab_resume, tab_history = st.tabs(["🚀 Web Scrape", "📄 Resume / CV Parser", "📜 Database & History"])
@@ -313,18 +327,18 @@ def main():
                         
                         format_type = st.selectbox(
                             "Select Export Format:",
-                            options=["Text (.txt)", "Markdown (.md)", "JSON (.json)", "CSV (.csv)", "Terraform (.tf)"],
+                            options=["Text (.txt)", "JSON (.json)", "Markdown (.md)", "CSV (.csv)", "Terraform (.tf)"],
                             key="direct_format_select"
                         )
                         
                         if format_type == "Text (.txt)":
                             st.download_button("📥 Download Text File", data=raw_text, file_name=f"direct_{timestamp}.txt", mime="text/plain")
-                        elif format_type == "Markdown (.md)":
-                            md_str = f"# Direct Scrape Output\n\n**URL:** [{target_url}]({target_url})\n\n```text\n{raw_text}\n```"
-                            st.download_button("📝 Download Markdown File", data=md_str, file_name=f"direct_{timestamp}.md", mime="text/markdown")
                         elif format_type == "JSON (.json)":
                             json_str = json.dumps({"url": target_url, "raw_text": raw_text}, indent=2)
                             st.download_button("📥 Download JSON File", data=json_str, file_name=f"direct_{timestamp}.json", mime="application/json")
+                        elif format_type == "Markdown (.md)":
+                            md_str = f"# Direct Scrape Output\n\n**URL:** [{target_url}]({target_url})\n\n```text\n{raw_text}\n```"
+                            st.download_button("📝 Download Markdown File", data=md_str, file_name=f"direct_{timestamp}.md", mime="text/markdown")
                         elif format_type == "CSV (.csv)":
                             csv_str = generate_csv_data({"raw_text": raw_text[:5000]})
                             st.download_button("📊 Download CSV File", data=csv_str, file_name=f"direct_{timestamp}.csv", mime="text/csv")
@@ -367,17 +381,25 @@ def main():
                         )
                         st.caption(f"💾 Saved record to Database (ID: `{record_id}`)")
 
-                        st.subheader("📊 Structured JSON Result")
-                        st.json(result_dict)
+                        # DISPLAY BOTH JSON AND TEXT FORMAT OUTPUT TABS ON SCREEN
+                        st.subheader("📊 Extraction Output")
+                        out_tab_json, out_tab_text = st.tabs(["JSON Format", "Plain Text Format"])
+                        
+                        with out_tab_json:
+                            st.json(result_dict)
+                        
+                        with out_tab_text:
+                            formatted_text_output = generate_plain_text_output(result.summary, result_dict.get("results", {}))
+                            st.code(formatted_text_output, language="text")
 
-                        with st.expander("📝 Summary", expanded=True):
+                        with st.expander("📝 Executive Summary", expanded=True):
                             st.write(result.summary)
 
                         json_data = json.dumps(result_dict, indent=2)
                         csv_data = generate_csv_data(result.results)
                         md_data = generate_markdown_data(result.summary, result.results, target_url)
                         tf_data = generate_terraform_data(result.summary, result.results, target_url)
-                        txt_data = f"SUMMARY:\n{result.summary}\n\nEXTRACTED DATA:\n{json_data}"
+                        txt_data = generate_plain_text_output(result.summary, result.results)
 
                         st.markdown("---")
                         st.subheader("💾 Export Data")
@@ -387,9 +409,9 @@ def main():
                             export_format = st.selectbox(
                                 "Choose Download Format:",
                                 options=[
-                                    "CSV Spreadsheet (.csv)", 
                                     "JSON (.json)", 
                                     "Text Summary (.txt)", 
+                                    "CSV Spreadsheet (.csv)", 
                                     "Markdown Report (.md)", 
                                     "Terraform (.tf)"
                                 ],
@@ -399,12 +421,12 @@ def main():
                         with sel_col2:
                             st.write("")
                             st.write("")
-                            if export_format == "CSV Spreadsheet (.csv)":
-                                st.download_button("📊 Download CSV File", data=csv_data, file_name=f"scrape_{timestamp}.csv", mime="text/csv", use_container_width=True)
-                            elif export_format == "JSON (.json)":
+                            if export_format == "JSON (.json)":
                                 st.download_button("📥 Download JSON File", data=json_data, file_name=f"scrape_{timestamp}.json", mime="application/json", use_container_width=True)
                             elif export_format == "Text Summary (.txt)":
                                 st.download_button("📄 Download Text File", data=txt_data, file_name=f"scrape_{timestamp}.txt", mime="text/plain", use_container_width=True)
+                            elif export_format == "CSV Spreadsheet (.csv)":
+                                st.download_button("📊 Download CSV File", data=csv_data, file_name=f"scrape_{timestamp}.csv", mime="text/csv", use_container_width=True)
                             elif export_format == "Markdown Report (.md)":
                                 st.download_button("📝 Download Markdown File", data=md_data, file_name=f"scrape_{timestamp}.md", mime="text/markdown", use_container_width=True)
                             elif export_format == "Terraform (.tf)":
@@ -459,7 +481,6 @@ def main():
                         res_dict = resume_result.to_dict()
                         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-                        # Save record to Database
                         record_id = save_scrape_record(
                             url=uploaded_file.name,
                             mode="Resume Scrape",
@@ -493,6 +514,17 @@ def main():
                             skills_html = "".join([f'<span class="skill-chip">{s}</span>' for s in resume_result.skills])
                             st.markdown(skills_html, unsafe_allow_html=True)
                             st.write("")
+
+                        # DISPLAY BOTH JSON AND TEXT FORMAT OUTPUT TABS FOR RESUME
+                        st.subheader("📊 Extraction Output (JSON & Text Formats)")
+                        res_tab_json, res_tab_text = st.tabs(["JSON Format", "Plain Text Format"])
+                        
+                        with res_tab_json:
+                            st.json(res_dict)
+                        
+                        with res_tab_text:
+                            txt_resume_view = generate_plain_text_output(resume_result.executive_summary, res_dict)
+                            st.code(txt_resume_view, language="text")
 
                         # Work Experience & Education Columns
                         col_exp, col_edu = st.columns(2)
@@ -536,7 +568,7 @@ def main():
                         csv_resume = generate_csv_data(res_dict)
                         md_resume = generate_markdown_data(resume_result.executive_summary, res_dict, uploaded_file.name)
                         tf_resume = generate_terraform_data(resume_result.executive_summary, res_dict, uploaded_file.name)
-                        txt_resume = f"NAME: {resume_result.candidate_name}\nEMAIL: {resume_result.email}\nSUMMARY: {resume_result.executive_summary}\n\nSKILLS: {', '.join(resume_result.skills)}\n\nFULL JSON:\n{json_resume}"
+                        txt_resume = generate_plain_text_output(resume_result.executive_summary, res_dict)
 
                         r_col1, r_col2 = st.columns([1, 1])
                         
@@ -545,8 +577,8 @@ def main():
                                 "Choose Download Format:",
                                 options=[
                                     "JSON (.json)", 
-                                    "CSV Spreadsheet (.csv)", 
                                     "Text Summary (.txt)", 
+                                    "CSV Spreadsheet (.csv)", 
                                     "Markdown Report (.md)", 
                                     "Terraform (.tf)"
                                 ],
@@ -558,10 +590,10 @@ def main():
                             st.write("")
                             if res_export_fmt == "JSON (.json)":
                                 st.download_button("📥 Download Resume JSON", data=json_resume, file_name=f"resume_{timestamp}.json", mime="application/json", use_container_width=True)
-                            elif res_export_fmt == "CSV Spreadsheet (.csv)":
-                                st.download_button("📊 Download Resume CSV", data=csv_resume, file_name=f"resume_{timestamp}.csv", mime="text/csv", use_container_width=True)
                             elif res_export_fmt == "Text Summary (.txt)":
                                 st.download_button("📄 Download Resume TXT", data=txt_resume, file_name=f"resume_{timestamp}.txt", mime="text/plain", use_container_width=True)
+                            elif res_export_fmt == "CSV Spreadsheet (.csv)":
+                                st.download_button("📊 Download Resume CSV", data=csv_resume, file_name=f"resume_{timestamp}.csv", mime="text/csv", use_container_width=True)
                             elif res_export_fmt == "Markdown Report (.md)":
                                 st.download_button("📝 Download Resume Markdown", data=md_resume, file_name=f"resume_{timestamp}.md", mime="text/markdown", use_container_width=True)
                             elif res_export_fmt == "Terraform (.tf)":
@@ -598,26 +630,34 @@ def main():
                     st.write(f"**Summary:** {summary}")
 
                     if results:
-                        st.json(results)
+                        # DUAL OUTPUT VIEW TABS IN HISTORY RECORD
+                        rec_out_json, rec_out_txt = st.tabs(["JSON Format", "Plain Text Format"])
                         
+                        with rec_out_json:
+                            st.json(results)
+                        
+                        with rec_out_txt:
+                            rec_txt_view = generate_plain_text_output(summary, results)
+                            st.code(rec_txt_view, language="text")
+
                         rec_json = json.dumps(results, indent=2)
                         rec_csv = generate_csv_data(results)
                         rec_md = generate_markdown_data(summary, results, url)
                         rec_tf = generate_terraform_data(summary, results, url)
-                        rec_txt = f"SUMMARY:\n{summary}\n\nDATA:\n{rec_json}"
+                        rec_txt = generate_plain_text_output(summary, results)
 
                         h_fmt = st.selectbox(
                             f"Export Format for Record #{rec_id}:",
-                            options=["CSV (.csv)", "JSON (.json)", "Text (.txt)", "Markdown (.md)", "Terraform (.tf)"],
+                            options=["JSON (.json)", "Text (.txt)", "CSV (.csv)", "Markdown (.md)", "Terraform (.tf)"],
                             key=f"fmt_sel_{rec_id}"
                         )
 
-                        if h_fmt == "CSV (.csv)":
-                            st.download_button(f"📊 Download CSV (Record #{rec_id})", data=rec_csv, file_name=f"record_{rec_id}.csv", mime="text/csv", key=f"dl_csv_{rec_id}")
-                        elif h_fmt == "JSON (.json)":
+                        if h_fmt == "JSON (.json)":
                             st.download_button(f"📥 Download JSON (Record #{rec_id})", data=rec_json, file_name=f"record_{rec_id}.json", mime="application/json", key=f"dl_json_{rec_id}")
                         elif h_fmt == "Text (.txt)":
                             st.download_button(f"📄 Download Text (Record #{rec_id})", data=rec_txt, file_name=f"record_{rec_id}.txt", mime="text/plain", key=f"dl_txt_{rec_id}")
+                        elif h_fmt == "CSV (.csv)":
+                            st.download_button(f"📊 Download CSV (Record #{rec_id})", data=rec_csv, file_name=f"record_{rec_id}.csv", mime="text/csv", key=f"dl_csv_{rec_id}")
                         elif h_fmt == "Markdown (.md)":
                             st.download_button(f"📝 Download Markdown (Record #{rec_id})", data=rec_md, file_name=f"record_{rec_id}.md", mime="text/markdown", key=f"dl_md_{rec_id}")
                         elif h_fmt == "Terraform (.tf)":
