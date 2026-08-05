@@ -96,20 +96,12 @@ st.markdown("""
         margin: 2px 4px 2px 0px;
         font-weight: 500;
     }
-    .candidate-card {
-        background: #1e293b;
-        padding: 1.5rem;
-        border-radius: 12px;
-        border: 1px solid #334155;
-        margin-bottom: 1.5rem;
-    }
     .ats-score-box {
         background: linear-gradient(135deg, #10b981 0%, #059669 100%);
         color: white;
-        padding: 1rem;
-        border-radius: 10px;
+        padding: 1.2rem;
+        border-radius: 12px;
         text-align: center;
-        font-size: 1.5rem;
         font-weight: bold;
     }
     </style>
@@ -498,7 +490,7 @@ def main():
                         )
                         st.success(f"Resume parsed successfully! Saved to Database (ID: `{record_id}`). Confidence: `{resume_result.parser_confidence * 100:.0f}%`")
 
-                        # ATS SCORE & CANDIDATE SUMMARY CARD
+                        # CANDIDATE SUMMARY & ATS SCORE CARDS USING CLEAN NATIVE STREAMLIT CONTAINERS
                         st.markdown("### 👤 Candidate Profile & ATS Analysis")
                         
                         ats_col, profile_col = st.columns([1, 3])
@@ -507,27 +499,41 @@ def main():
                             ats_score = resume_result.ats_analysis.ats_score
                             st.markdown(f"""
                             <div class="ats-score-box">
-                                <div>ATS Score</div>
-                                <div style="font-size: 2.8rem; margin: 0.5rem 0;">{ats_score}/100</div>
+                                <div style="font-size:0.9rem; text-transform:uppercase; letter-spacing:1px;">ATS Score</div>
+                                <div style="font-size: 2.8rem; margin: 0.3rem 0;">{ats_score}/100</div>
                             </div>
                             """, unsafe_allow_html=True)
                         
                         with profile_col:
-                            st.markdown(f"""
-                            <div class="candidate-card">
-                                <h2 style="margin-top:0; color:#4285f4;">{resume_result.contact.name or 'Candidate Profile'}</h2>
-                                <p><strong>📧 Email:</strong> {resume_result.contact.email or 'N/A'} | 
-                                   <strong>📞 Phone:</strong> {resume_result.contact.phone or 'N/A'} | 
-                                   <strong>📍 Location:</strong> {resume_result.contact.location or 'N/A'}</p>
-                                <p>
-                                    {f'<strong>🔗 LinkedIn:</strong> <a href="{resume_result.contact.linkedin}" target="_blank">{resume_result.contact.linkedin}</a> | ' if resume_result.contact.linkedin else ''}
-                                    {f'<strong>💻 GitHub:</strong> <a href="{resume_result.contact.github}" target="_blank">{resume_result.contact.github}</a> | ' if resume_result.contact.github else ''}
-                                    {f'<strong>🌐 Portfolio:</strong> <a href="{resume_result.contact.portfolio}" target="_blank">{resume_result.contact.portfolio}</a>' if resume_result.contact.portfolio else ''}
-                                </p>
-                                <hr style="border-color:#334155;">
-                                <p><strong>Executive Summary:</strong> {resume_result.executive_summary or 'No summary provided.'}</p>
-                            </div>
-                            """, unsafe_allow_html=True)
+                            with st.container(border=True):
+                                cand_name = resume_result.contact.name or 'Candidate Profile'
+                                st.subheader(f"👤 {cand_name}")
+                                
+                                info_parts = []
+                                if resume_result.contact.email:
+                                    info_parts.append(f"📧 **Email:** {resume_result.contact.email}")
+                                if resume_result.contact.phone:
+                                    info_parts.append(f"📞 **Phone:** {resume_result.contact.phone}")
+                                if resume_result.contact.location:
+                                    info_parts.append(f"📍 **Location:** {resume_result.contact.location}")
+                                
+                                if info_parts:
+                                    st.write(" | ".join(info_parts))
+
+                                link_parts = []
+                                if resume_result.contact.linkedin:
+                                    link_parts.append(f"🔗 [LinkedIn]({resume_result.contact.linkedin})")
+                                if resume_result.contact.github:
+                                    link_parts.append(f"💻 [GitHub]({resume_result.contact.github})")
+                                if resume_result.contact.portfolio:
+                                    link_parts.append(f"🌐 [Portfolio]({resume_result.contact.portfolio})")
+
+                                if link_parts:
+                                    st.write(" | ".join(link_parts))
+
+                                st.divider()
+                                st.markdown("**Executive Summary:**")
+                                st.write(resume_result.executive_summary or "No summary provided.")
 
                         # CATEGORIZED SKILLS CHIPS
                         st.markdown("#### 🛠️ Categorized Skills")
