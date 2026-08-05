@@ -44,7 +44,7 @@ A plug-and-play, decoupled web and document scraping microservice featuring an a
 │   └── __init__.py         # Core Package Initializer
 ├── ui/
 │   └── app.py              # Streamlit Web UI, Candidate Profile Dashboard & Multi-Format Downloader
-├── storage/                # Local data persistence & SQLite database directory
+├── storage/                # Local data persistence & Database directory
 ├── .env                    # Environment variables configuration
 ├── .gitignore              # Git ignore rules
 ├── Dockerfile              # Docker image specification with Playwright Chromium
