@@ -1,4 +1,4 @@
-# 🕸️ Modular Web Scraping Microservice
+# 🕸️ Modular Web & Resume Scraping Microservice
 
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![Playwright](https://img.shields.io/badge/Playwright-Async-45BA4B?style=for-the-badge&logo=playwright&logoColor=white)](https://playwright.dev/python/)
@@ -7,18 +7,19 @@
 [![Docker](https://img.shields.io/badge/Docker-Containerized-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Database-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 
-A plug-and-play, decoupled web scraping microservice featuring an asynchronous headless Playwright engine, a Google Gemini AI-powered structured extraction router, multi-format export capabilities (**CSV, JSON, Text, Markdown, Terraform**), database persistence (PostgreSQL & SQLite), and an interactive Streamlit dashboard.
+A plug-and-play, decoupled web and document scraping microservice featuring an asynchronous headless Playwright engine, an AI Resume/CV Parser, a Google Gemini structured extraction router, multi-format export capabilities (**CSV, JSON, Text, Markdown, Terraform**), database persistence (PostgreSQL & SQLite), and an interactive Streamlit dashboard.
 
 ---
 
 ## 🌟 Key Features
 
-- 🏗️ **Strictly Decoupled Architecture**: UI contains zero browser launching code; all browser actions and LLM routers are encapsulated inside the `core` package.
+- 📄 **AI-Powered Resume / CV Parser**: Upload PDF, Microsoft Word (`.docx`), or plain text (`.txt`) candidate resumes for instant structured extraction of contact details, executive summary, skills, work experience timeline, education, certifications, and projects.
+- 🏗️ **Strictly Decoupled Architecture**: UI contains zero browser launching code; all browser actions, document parsers, and LLM routers are encapsulated inside the `core` package.
 - ⚡ **Asynchronous Playwright Engine**: High-speed, fault-tolerant headless browser automation with anti-detection evasions and fast DOM loading strategies.
-- 🤖 **Agentic & Direct Modes**:
+- 🤖 **Agentic & Direct Web Modes**:
   - **Direct Scrape**: Fast raw text (`innerText`) page content extraction.
   - **Agentic Scrape**: Natural language prompt-driven extraction powered by Google Gemini AI with Pydantic schema validation.
-- 💾 **Multi-Format Downloads**: Export scraped datasets in 5 formats:
+- 💾 **Multi-Format Downloads**: Export scraped datasets & candidate profiles in 5 formats:
   - **JSON (`.json`)**: Structured JSON payload.
   - **CSV (`.csv`)**: Tabular data ready for Excel & Google Sheets.
   - **Markdown (`.md`)**: GitHub-style markdown reports with formatted tables.
@@ -36,18 +37,19 @@ A plug-and-play, decoupled web scraping microservice featuring an asynchronous h
 ```text
 .
 ├── core/
-│   ├── engine.py       # Async Playwright Headless Browser Engine (BrowserEngine, EngineConfig)
-│   ├── scraper.py      # Extraction Router for Direct & Gemini Agentic Modes (ModularScraper)
-│   ├── db.py           # Database Persistence (PostgreSQL & SQLite helpers)
-│   └── __init__.py     # Core Package Initializer
+│   ├── engine.py           # Async Playwright Headless Browser Engine (BrowserEngine, EngineConfig)
+│   ├── scraper.py          # Web Extraction Router for Direct & Gemini Agentic Modes (ModularScraper)
+│   ├── resume_parser.py    # Multi-Format Resume/CV Extraction Engine (ResumeParser, ResumeParseResult)
+│   ├── db.py               # Database Persistence (PostgreSQL & SQLite helpers)
+│   └── __init__.py         # Core Package Initializer
 ├── ui/
-│   └── app.py          # Interactive Streamlit Web Interface & Multi-Format Downloader
-├── storage/            # Local data persistence & SQLite database directory
-├── .env                # Environment variables configuration
-├── .gitignore          # Git ignore rules
-├── Dockerfile          # Docker image specification with Playwright Chromium
-├── docker-compose.yml  # Docker Compose orchestration (PostgreSQL + Microservice)
-└── requirements.txt    # Python dependencies manifest
+│   └── app.py              # Streamlit Web UI, Candidate Profile Dashboard & Multi-Format Downloader
+├── storage/                # Local data persistence & SQLite database directory
+├── .env                    # Environment variables configuration
+├── .gitignore              # Git ignore rules
+├── Dockerfile              # Docker image specification with Playwright Chromium
+├── docker-compose.yml      # Docker Compose orchestration (PostgreSQL + Microservice)
+└── requirements.txt        # Python dependencies manifest
 ```
 
 ---
@@ -104,42 +106,38 @@ docker compose up --build -d
 
 Open **`http://localhost:8501`** in your web browser.
 
-To stop the containers:
-```bash
-docker compose down
-```
-
 ---
 
-## 🛠️ Programmatic Core Usage
+## 📄 Resume / CV Parsing Usage
 
-You can easily import and use the `core` extraction engine in your own Python applications or microservices:
+### Via Streamlit UI
+1. Navigate to the **`📄 Resume / CV Parser`** tab in the dashboard.
+2. Upload a candidate resume file (**PDF, DOCX, or TXT**).
+3. Optionally add custom focus instructions (e.g. *"Highlight Python experience and cloud certifications"*).
+4. Click **`⚡ Parse Resume with Gemini AI`** to view candidate dashboard cards & download results in JSON, CSV, TXT, Markdown, or Terraform HCL formats!
 
+### Programmatically via Python
 ```python
 import asyncio
-from core import EngineConfig, ModularScraper
+from core import ResumeParser
 
-async def run_scraper():
-    # 1. Initialize Engine Configuration
-    config = EngineConfig(headless=True)
-    scraper = ModularScraper(config=config)
+async def parse_candidate_cv():
+    with open("candidate_resume.pdf", "rb") as f:
+        file_bytes = f.read()
 
-    # 2. Direct Scrape Example
-    raw_text = await scraper.run_direct_scrape("https://example.com")
-    print("Direct Text Output:", raw_text[:500])
-
-    # 3. Agentic LLM Extraction Example
-    result = await scraper.run_agentic_scrape(
-        url="https://example.com",
-        prompt="Extract all key headings, main topics, and contact emails.",
-        model_name="gemini-flash-latest"
+    parser = ResumeParser()
+    result = await parser.parse_resume(
+        file_bytes=file_bytes,
+        filename="candidate_resume.pdf"
     )
 
-    print("Summary:", result.summary)
-    print("Structured Results:", result.results)
+    print("Candidate Name:", result.candidate_name)
+    print("Email:", result.email)
+    print("Skills:", result.skills)
+    print("Work Experience:", result.work_experience)
 
 if __name__ == "__main__":
-    asyncio.run(run_scraper())
+    asyncio.run(parse_candidate_cv())
 ```
 
 ---
