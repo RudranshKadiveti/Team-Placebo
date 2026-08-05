@@ -86,11 +86,15 @@ class ProjectItem(BaseModel):
 
 
 class ATSAnalysis(BaseModel):
-    """ATS readiness evaluation and optimization feedback."""
-    ats_score: int = Field(default=0, description="Overall ATS compatibility score from 0 to 100")
-    strengths: List[str] = Field(default_factory=list, description="Key resume strengths and positive elements")
+    """ATS evaluation calculated using real-life factor weightages."""
+    ats_score: int = Field(default=0, description="Overall weighted ATS score (0-100) calculated from the 4 pillars")
+    keyword_skill_match_score: int = Field(default=0, description="Keyword & Skill Match score (45% weight): Hard skills, tech stack, and industry terms")
+    formatting_compatibility_score: int = Field(default=0, description="Parsing & Formatting Compatibility score (25% weight): Clean machine-readable text and standard headings")
+    content_impact_score: int = Field(default=0, description="Content Quality & Impact score (25% weight): Quantified achievements, metrics, and active bullet points")
+    structure_length_score: int = Field(default=0, description="Structure & Length score (10% weight): Logical section flow and appropriate length")
+    strengths: List[str] = Field(default_factory=list, description="Key resume strengths")
     issues: List[str] = Field(default_factory=list, description="Formatting or content issues impacting ATS scanning")
-    suggestions: List[str] = Field(default_factory=list, description="Actionable recommendations for ATS optimization")
+    suggestions: List[str] = Field(default_factory=list, description="Actionable ATS improvement recommendations")
 
 
 class ResumeMetadata(BaseModel):
@@ -172,7 +176,7 @@ def extract_text_from_document(file_bytes: bytes, filename: str) -> str:
 
 
 class ResumeParser:
-    """Core Resume / CV extraction engine enforcing strict JSON schemas via Gemini AI."""
+    """Core Resume / CV extraction engine enforcing strict real-life factor weightage ATS scoring via Gemini AI."""
 
     def __init__(self, api_key: Optional[str] = None):
         self.api_key = api_key or os.getenv("GEMINI_API_KEY")
@@ -202,7 +206,7 @@ class ResumeParser:
         
         prompt_content = f"Filename: {filename}\nFile Type: {file_ext}\n\nResume Text Content:\n{truncated_text}"
         if custom_instructions and custom_instructions.strip():
-            prompt_content += f"\n\nSpecial Extraction Focus:\n{custom_instructions}"
+            prompt_content += f"\n\nTarget Role / Custom Focus Instructions:\n{custom_instructions}"
 
         candidate_models = [model_name]
         for fallback in ["gemini-flash-latest", "gemini-3.6-flash", "gemini-2.0-flash", "gemini-3.5-flash"]:
@@ -217,13 +221,19 @@ class ResumeParser:
                     contents=prompt_content,
                     config=types.GenerateContentConfig(
                         system_instruction=(
-                            "You are an expert HR resume parser and talent analyst. "
+                            "You are an expert HR resume parser and ATS talent scanner. "
                             "Parse the resume text into the requested strict JSON schema without omitting any fields. "
                             "Normalize all dates into ISO format (YYYY-MM or YYYY). "
                             "Group skills into programming_languages, frameworks_libraries, tools_platforms, domain_knowledge, soft_skills, and languages_spoken. "
                             "Place all contact details in the contact object. "
-                            "Provide an ATS evaluation with an ats_score (0-100), strengths, issues, and suggestions. "
-                            "If any field is unavailable in the resume text, provide empty strings, empty lists, or 0. "
+                            "Calculate the ats_analysis object strictly using REAL-LIFE FACTOR WEIGHTAGES:\n"
+                            "1. keyword_skill_match_score (45% Weight): Exact hard skills, required tech stack, and industry terms.\n"
+                            "2. formatting_compatibility_score (25% Weight): Clean machine-readable text layout and standard section headings without graphics.\n"
+                            "3. content_impact_score (25% Weight): Quantified achievements, metrics, clear work history, and active bullet points.\n"
+                            "4. structure_length_score (10% Weight): Logical section flow and appropriate length for experience level.\n"
+                            "Set overall ats_score as the weighted average: (keyword_skill_match_score * 0.45) + (formatting_compatibility_score * 0.25) + (content_impact_score * 0.25) + (structure_length_score * 0.10).\n"
+                            "Provide actionable strengths, issues, and suggestions.\n"
+                            "If any field is unavailable in the resume text, use empty strings, empty lists, or 0. "
                             "Return strictly valid JSON with no markdown block or explanatory text."
                         ),
                         response_mime_type="application/json",

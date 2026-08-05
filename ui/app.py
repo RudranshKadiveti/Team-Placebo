@@ -438,7 +438,7 @@ def main():
     # TAB 2: RESUME / CV PARSER
     with tab_resume:
         st.subheader("📄 AI-Powered Resume & CV Parser")
-        st.write("Upload any candidate Resume or CV document (**PDF, DOCX, or TXT**) for standardized JSON schema extraction & ATS analysis.")
+        st.write("Upload any candidate Resume or CV document (**PDF, DOCX, or TXT**) for standardized JSON schema extraction & real-life ATS weightage analysis.")
 
         col_r1, col_r2 = st.columns([2, 1])
         
@@ -452,7 +452,7 @@ def main():
         with col_r2:
             custom_instructions = st.text_area(
                 "Special Focus Instructions (Optional)",
-                placeholder="e.g., Highlight Python skills, years of experience, and cloud certifications.",
+                placeholder="e.g., Target Role: Senior Python & Cloud Engineer.",
                 height=110
             )
 
@@ -464,7 +464,7 @@ def main():
             elif not effective_api_key:
                 st.error("Gemini API Key is missing. Please set `GEMINI_API_KEY` in your `.env` file or enter it in the sidebar.")
             else:
-                with st.spinner("🤖 Parsing Resume Document & Extracting Standardized Candidate Schema..."):
+                with st.spinner("🤖 Parsing Resume Document & Calculating Real-Life ATS Factor Scores..."):
                     try:
                         file_bytes = uploaded_file.read()
                         parser = ResumeParser(api_key=effective_api_key)
@@ -490,50 +490,82 @@ def main():
                         )
                         st.success(f"Resume parsed successfully! Saved to Database (ID: `{record_id}`). Confidence: `{resume_result.parser_confidence * 100:.0f}%`")
 
-                        # CANDIDATE SUMMARY & ATS SCORE CARDS USING CLEAN NATIVE STREAMLIT CONTAINERS
-                        st.markdown("### 👤 Candidate Profile & ATS Analysis")
+                        # CANDIDATE PROFILE & REAL-LIFE ATS FACTOR BREAKDOWN
+                        st.markdown("### 👤 Candidate Profile & ATS Factor Analysis")
                         
-                        ats_col, profile_col = st.columns([1, 3])
+                        ats_obj = resume_result.ats_analysis
+                        col_ats_main, col_ats_breakdown = st.columns([1, 2])
                         
-                        with ats_col:
-                            ats_score = resume_result.ats_analysis.ats_score
+                        with col_ats_main:
                             st.markdown(f"""
                             <div class="ats-score-box">
-                                <div style="font-size:0.9rem; text-transform:uppercase; letter-spacing:1px;">ATS Score</div>
-                                <div style="font-size: 2.8rem; margin: 0.3rem 0;">{ats_score}/100</div>
+                                <div style="font-size:0.85rem; text-transform:uppercase; letter-spacing:1px;">Overall ATS Score</div>
+                                <div style="font-size: 2.8rem; margin: 0.3rem 0;">{ats_obj.ats_score}/100</div>
                             </div>
                             """, unsafe_allow_html=True)
                         
-                        with profile_col:
-                            with st.container(border=True):
-                                cand_name = resume_result.contact.name or 'Candidate Profile'
-                                st.subheader(f"👤 {cand_name}")
-                                
-                                info_parts = []
-                                if resume_result.contact.email:
-                                    info_parts.append(f"📧 **Email:** {resume_result.contact.email}")
-                                if resume_result.contact.phone:
-                                    info_parts.append(f"📞 **Phone:** {resume_result.contact.phone}")
-                                if resume_result.contact.location:
-                                    info_parts.append(f"📍 **Location:** {resume_result.contact.location}")
-                                
-                                if info_parts:
-                                    st.write(" | ".join(info_parts))
+                        with col_ats_breakdown:
+                            st.markdown("**🎯 Real-Life Factor Score Breakdown:**")
+                            st.write(f"🔑 **Keyword & Skill Match (45%):** `{ats_obj.keyword_skill_match_score}%`")
+                            st.progress(min(max(ats_obj.keyword_skill_match_score, 0), 100))
+                            
+                            st.write(f"📄 **Formatting & Parsing (25%):** `{ats_obj.formatting_compatibility_score}%`")
+                            st.progress(min(max(ats_obj.formatting_compatibility_score, 0), 100))
 
-                                link_parts = []
-                                if resume_result.contact.linkedin:
-                                    link_parts.append(f"🔗 [LinkedIn]({resume_result.contact.linkedin})")
-                                if resume_result.contact.github:
-                                    link_parts.append(f"💻 [GitHub]({resume_result.contact.github})")
-                                if resume_result.contact.portfolio:
-                                    link_parts.append(f"🌐 [Portfolio]({resume_result.contact.portfolio})")
+                            st.write(f"💥 **Content Quality & Impact (25%):** `{ats_obj.content_impact_score}%`")
+                            st.progress(min(max(ats_obj.content_impact_score, 0), 100))
 
-                                if link_parts:
-                                    st.write(" | ".join(link_parts))
+                            st.write(f"📐 **Structure & Length (10%):** `{ats_obj.structure_length_score}%`")
+                            st.progress(min(max(ats_obj.structure_length_score, 0), 100))
 
-                                st.divider()
-                                st.markdown("**Executive Summary:**")
-                                st.write(resume_result.executive_summary or "No summary provided.")
+                        st.write("")
+
+                        # PROFILE CARD CONTAINER
+                        with st.container(border=True):
+                            cand_name = resume_result.contact.name or 'Candidate Profile'
+                            st.subheader(f"👤 {cand_name}")
+                            
+                            info_parts = []
+                            if resume_result.contact.email:
+                                info_parts.append(f"📧 **Email:** {resume_result.contact.email}")
+                            if resume_result.contact.phone:
+                                info_parts.append(f"📞 **Phone:** {resume_result.contact.phone}")
+                            if resume_result.contact.location:
+                                info_parts.append(f"📍 **Location:** {resume_result.contact.location}")
+                            
+                            if info_parts:
+                                st.write(" | ".join(info_parts))
+
+                            link_parts = []
+                            if resume_result.contact.linkedin:
+                                link_parts.append(f"🔗 [LinkedIn]({resume_result.contact.linkedin})")
+                            if resume_result.contact.github:
+                                link_parts.append(f"💻 [GitHub]({resume_result.contact.github})")
+                            if resume_result.contact.portfolio:
+                                link_parts.append(f"🌐 [Portfolio]({resume_result.contact.portfolio})")
+
+                            if link_parts:
+                                st.write(" | ".join(link_parts))
+
+                            st.divider()
+                            st.markdown("**Executive Summary:**")
+                            st.write(resume_result.executive_summary or "No summary provided.")
+
+                        # ATS FEEDBACK EXPANDERS
+                        if ats_obj.strengths or ats_obj.issues or ats_obj.suggestions:
+                            with st.expander("💡 ATS Scanner Evaluation & Feedback", expanded=False):
+                                if ats_obj.strengths:
+                                    st.markdown("**✅ Resume Strengths:**")
+                                    for s in ats_obj.strengths:
+                                        st.write(f"- {s}")
+                                if ats_obj.issues:
+                                    st.markdown("**⚠️ ATS Issues Detected:**")
+                                    for i in ats_obj.issues:
+                                        st.write(f"- {i}")
+                                if ats_obj.suggestions:
+                                    st.markdown("**🚀 Actionable Recommendations:**")
+                                    for sug in ats_obj.suggestions:
+                                        st.write(f"- {sug}")
 
                         # CATEGORIZED SKILLS CHIPS
                         st.markdown("#### 🛠️ Categorized Skills")
