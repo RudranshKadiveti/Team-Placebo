@@ -103,6 +103,15 @@ st.markdown("""
         border: 1px solid #334155;
         margin-bottom: 1.5rem;
     }
+    .ats-score-box {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+        padding: 1rem;
+        border-radius: 10px;
+        text-align: center;
+        font-size: 1.5rem;
+        font-weight: bold;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -381,7 +390,6 @@ def main():
                         )
                         st.caption(f"💾 Saved record to Database (ID: `{record_id}`)")
 
-                        # DISPLAY BOTH JSON AND TEXT FORMAT OUTPUT TABS ON SCREEN
                         st.subheader("📊 Extraction Output")
                         out_tab_json, out_tab_text = st.tabs(["JSON Format", "Plain Text Format"])
                         
@@ -438,7 +446,7 @@ def main():
     # TAB 2: RESUME / CV PARSER
     with tab_resume:
         st.subheader("📄 AI-Powered Resume & CV Parser")
-        st.write("Upload any candidate Resume or CV document (**PDF, DOCX, or TXT**) for instant structured extraction.")
+        st.write("Upload any candidate Resume or CV document (**PDF, DOCX, or TXT**) for standardized JSON schema extraction & ATS analysis.")
 
         col_r1, col_r2 = st.columns([2, 1])
         
@@ -451,7 +459,7 @@ def main():
         
         with col_r2:
             custom_instructions = st.text_area(
-                "Focus Instructions (Optional)",
+                "Special Focus Instructions (Optional)",
                 placeholder="e.g., Highlight Python skills, years of experience, and cloud certifications.",
                 height=110
             )
@@ -464,7 +472,7 @@ def main():
             elif not effective_api_key:
                 st.error("Gemini API Key is missing. Please set `GEMINI_API_KEY` in your `.env` file or enter it in the sidebar.")
             else:
-                with st.spinner("🤖 Parsing Resume Document & Extracting Candidate Profile..."):
+                with st.spinner("🤖 Parsing Resume Document & Extracting Standardized Candidate Schema..."):
                     try:
                         file_bytes = uploaded_file.read()
                         parser = ResumeParser(api_key=effective_api_key)
@@ -485,39 +493,77 @@ def main():
                             url=uploaded_file.name,
                             mode="Resume Scrape",
                             prompt=custom_instructions,
-                            summary=resume_result.executive_summary or f"Parsed Resume for {resume_result.candidate_name}",
+                            summary=resume_result.executive_summary or f"Parsed Resume for {resume_result.contact.name}",
                             results=res_dict
                         )
-                        st.success(f"Resume parsed successfully! Saved to Database (ID: `{record_id}`).")
+                        st.success(f"Resume parsed successfully! Saved to Database (ID: `{record_id}`). Confidence: `{resume_result.parser_confidence * 100:.0f}%`")
 
-                        # RENDER CANDIDATE DASHBOARD CARDS
-                        st.markdown("### 👤 Candidate Profile")
+                        # ATS SCORE & CANDIDATE SUMMARY CARD
+                        st.markdown("### 👤 Candidate Profile & ATS Analysis")
                         
-                        st.markdown(f"""
-                        <div class="candidate-card">
-                            <h2 style="margin-top:0; color:#4285f4;">{resume_result.candidate_name or 'Candidate Profile'}</h2>
-                            <p><strong>📧 Email:</strong> {resume_result.email or 'N/A'} | 
-                               <strong>📞 Phone:</strong> {resume_result.phone or 'N/A'} | 
-                               <strong>📍 Location:</strong> {resume_result.location or 'N/A'}</p>
-                            <p>
-                                {f'<strong>🔗 LinkedIn:</strong> <a href="{resume_result.linkedin_url}" target="_blank">{resume_result.linkedin_url}</a> | ' if resume_result.linkedin_url else ''}
-                                {f'<strong>💻 GitHub:</strong> <a href="{resume_result.github_url}" target="_blank">{resume_result.github_url}</a>' if resume_result.github_url else ''}
-                            </p>
-                            <hr style="border-color:#334155;">
-                            <p><strong>Executive Summary:</strong> {resume_result.executive_summary or 'No summary provided.'}</p>
-                        </div>
-                        """, unsafe_allow_html=True)
+                        ats_col, profile_col = st.columns([1, 3])
+                        
+                        with ats_col:
+                            ats_score = resume_result.ats_analysis.ats_score
+                            st.markdown(f"""
+                            <div class="ats-score-box">
+                                <div>ATS Score</div>
+                                <div style="font-size: 2.8rem; margin: 0.5rem 0;">{ats_score}/100</div>
+                            </div>
+                            """, unsafe_allow_html=True)
+                        
+                        with profile_col:
+                            st.markdown(f"""
+                            <div class="candidate-card">
+                                <h2 style="margin-top:0; color:#4285f4;">{resume_result.contact.name or 'Candidate Profile'}</h2>
+                                <p><strong>📧 Email:</strong> {resume_result.contact.email or 'N/A'} | 
+                                   <strong>📞 Phone:</strong> {resume_result.contact.phone or 'N/A'} | 
+                                   <strong>📍 Location:</strong> {resume_result.contact.location or 'N/A'}</p>
+                                <p>
+                                    {f'<strong>🔗 LinkedIn:</strong> <a href="{resume_result.contact.linkedin}" target="_blank">{resume_result.contact.linkedin}</a> | ' if resume_result.contact.linkedin else ''}
+                                    {f'<strong>💻 GitHub:</strong> <a href="{resume_result.contact.github}" target="_blank">{resume_result.contact.github}</a> | ' if resume_result.contact.github else ''}
+                                    {f'<strong>🌐 Portfolio:</strong> <a href="{resume_result.contact.portfolio}" target="_blank">{resume_result.contact.portfolio}</a>' if resume_result.contact.portfolio else ''}
+                                </p>
+                                <hr style="border-color:#334155;">
+                                <p><strong>Executive Summary:</strong> {resume_result.executive_summary or 'No summary provided.'}</p>
+                            </div>
+                            """, unsafe_allow_html=True)
 
-                        # Skills Chips
-                        if resume_result.skills:
-                            st.markdown("#### 🛠️ Technical & Professional Skills")
-                            skills_html = "".join([f'<span class="skill-chip">{s}</span>' for s in resume_result.skills])
-                            st.markdown(skills_html, unsafe_allow_html=True)
-                            st.write("")
+                        # CATEGORIZED SKILLS CHIPS
+                        st.markdown("#### 🛠️ Categorized Skills")
+                        skills_obj = resume_result.skills
+                        
+                        sk_col1, sk_col2, sk_col3 = st.columns(3)
+                        with sk_col1:
+                            if skills_obj.programming_languages:
+                                st.markdown("**Languages:**")
+                                st.markdown("".join([f'<span class="skill-chip">{s}</span>' for s in skills_obj.programming_languages]), unsafe_allow_html=True)
+                            if skills_obj.frameworks_libraries:
+                                st.markdown("**Frameworks:**")
+                                st.markdown("".join([f'<span class="skill-chip">{s}</span>' for s in skills_obj.frameworks_libraries]), unsafe_allow_html=True)
+                        
+                        with sk_col2:
+                            if skills_obj.tools_platforms:
+                                st.markdown("**Tools & Cloud:**")
+                                st.markdown("".join([f'<span class="skill-chip">{s}</span>' for s in skills_obj.tools_platforms]), unsafe_allow_html=True)
+                            if skills_obj.domain_knowledge:
+                                st.markdown("**Domain Knowledge:**")
+                                st.markdown("".join([f'<span class="skill-chip">{s}</span>' for s in skills_obj.domain_knowledge]), unsafe_allow_html=True)
+                        
+                        with sk_col3:
+                            if skills_obj.soft_skills:
+                                st.markdown("**Soft Skills:**")
+                                st.markdown("".join([f'<span class="skill-chip">{s}</span>' for s in skills_obj.soft_skills]), unsafe_allow_html=True)
+                            if skills_obj.languages_spoken:
+                                st.markdown("**Languages Spoken:**")
+                                st.markdown("".join([f'<span class="skill-chip">{s}</span>' for s in skills_obj.languages_spoken]), unsafe_allow_html=True)
 
-                        # DISPLAY BOTH JSON AND TEXT FORMAT OUTPUT TABS FOR RESUME
-                        st.subheader("📊 Extraction Output (JSON & Text Formats)")
-                        res_tab_json, res_tab_text = st.tabs(["JSON Format", "Plain Text Format"])
+                        st.write("")
+
+                        # DISPLAY DUAL JSON & TEXT OUTPUT TABS
+                        st.markdown("---")
+                        st.subheader("📊 Extraction Output (Strict JSON & Plain Text)")
+                        res_tab_json, res_tab_text = st.tabs(["Strict JSON Format", "Plain Text Format"])
                         
                         with res_tab_json:
                             st.json(res_dict)
@@ -530,11 +576,18 @@ def main():
                         col_exp, col_edu = st.columns(2)
                         
                         with col_exp:
-                            st.markdown("#### 💼 Work Experience")
+                            st.markdown("#### 💼 Enriched Work Experience")
                             if resume_result.work_experience:
                                 for exp in resume_result.work_experience:
-                                    st.markdown(f"**{exp.job_title}** @ *{exp.company}* (`{exp.duration}`)")
-                                    st.write(exp.description)
+                                    st.markdown(f"**{exp.job_title}** @ *{exp.company}* ({exp.start_date} - {exp.end_date})")
+                                    if exp.location:
+                                        st.caption(f"📍 {exp.location}")
+                                    if exp.responsibilities:
+                                        st.write("**Responsibilities:** " + "; ".join(exp.responsibilities))
+                                    if exp.achievements:
+                                        st.write("**Impact:** " + "; ".join(exp.achievements))
+                                    if exp.technologies_used:
+                                        st.write("**Tech:** " + ", ".join(exp.technologies_used))
                                     st.markdown("---")
                             else:
                                 st.write("No work experience listed.")
@@ -543,22 +596,16 @@ def main():
                             st.markdown("#### 🎓 Education & Certifications")
                             if resume_result.education:
                                 for edu in resume_result.education:
-                                    st.markdown(f"**{edu.degree}**")
-                                    st.write(f"*{edu.institution}* ({edu.graduation_year})")
+                                    st.markdown(f"**{edu.degree}** - *{edu.field_of_study}*")
+                                    st.write(f"*{edu.institution}* ({edu.start_date} - {edu.end_date})")
+                                    if edu.gpa_or_grade:
+                                        st.caption(f"GPA/Grade: {edu.gpa_or_grade}")
                                     st.markdown("---")
                             
                             if resume_result.certifications:
                                 st.markdown("**📜 Certifications:**")
                                 for cert in resume_result.certifications:
-                                    st.write(f"- {cert}")
-
-                        # Projects
-                        if resume_result.projects:
-                            with st.expander("🚀 Featured Projects", expanded=False):
-                                for proj in resume_result.projects:
-                                    st.markdown(f"**{proj.title}** (Tech: `{proj.technologies}`)")
-                                    st.write(proj.description)
-                                    st.markdown("---")
+                                    st.write(f"- **{cert.title}** ({cert.issuing_organization}) - *{cert.issue_date}*")
 
                         # EXPORT FORMATS FOR RESUME
                         st.markdown("---")
@@ -630,7 +677,6 @@ def main():
                     st.write(f"**Summary:** {summary}")
 
                     if results:
-                        # DUAL OUTPUT VIEW TABS IN HISTORY RECORD
                         rec_out_json, rec_out_txt = st.tabs(["JSON Format", "Plain Text Format"])
                         
                         with rec_out_json:
