@@ -40,7 +40,14 @@ You are taking over development of **CareerPilot AI**, an AI-powered Career Oper
    - Multer middleware for file type validation (`.pdf`, `.doc`, `.docx`) and 10MB size limit.
    - `StorageService` saving files to `uploads/resumes/`.
    - `POST /api/resumes/upload` endpoint and frontend drag-and-drop zone integration.
-8. **Phase 4F — Resume Embedding Pipeline**:
+8. **Phase 4C — Structured Resume Section Parsing**:
+   - Migrated from regex-based parsing to robust Generative AI parsing using OpenAI (`gpt-3.5-turbo`).
+   - Fixed PDF parsing issue by securely downgrading `pdf-parse` to `v1.1.1` and strictly bounding max extraction length to 15,000 characters to prevent API token overflow.
+   - Saves structured data (Summary, Skills, Experience, Education, Projects, Certifications) strictly formatted as JSON.
+9. **Phase 4D — AI Resume ATS Scoring & Performance Engine**:
+   - Implemented ATS scoring algorithm (Section Completeness, Formatting, Keyword Match, Overall Match).
+   - Rendered real-time ATS Analytics on Dashboard UI parsing fallback patterns for 503 errors.
+10. **Phase 4F — Resume Embedding Pipeline**:
    - `ResumeChunk` model in PostgreSQL with `pgvector` vector column (`vector(384)`).
    - Centralized embedding configuration in `backend/src/config/embedding.config.ts`.
    - Section-aware semantic chunking strategy (`chunkingVersion = "v1"`).

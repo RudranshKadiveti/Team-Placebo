@@ -12,6 +12,7 @@ const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   JWT_SECRET: z.string().min(10, { message: 'JWT_SECRET must be at least 10 characters long' }),
   JWT_EXPIRES_IN: z.string().default('7d'),
+  OPENAI_API_KEY: z.string().min(1, { message: 'OPENAI_API_KEY is required for resume parsing' }),
 });
 
 const parseEnv = () => {

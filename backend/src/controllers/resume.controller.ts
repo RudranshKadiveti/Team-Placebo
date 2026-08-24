@@ -91,3 +91,52 @@ export const embedResumeController = async (req: Request, res: Response, next: N
     return next(error);
   }
 };
+
+export const parseResumeController = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const validationResult = resumeIdParamSchema.safeParse(req.params);
+
+    if (!validationResult.success) {
+      const error: CustomError = new Error(validationResult.error.errors[0].message);
+      error.statusCode = 400;
+      return next(error);
+    }
+
+    const userId = req.user!.id;
+    const { parseResumeRecord } = await import('../services/resumeParser.service.js');
+    const parsedData = await parseResumeRecord(validationResult.data.id, userId);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Resume parsed successfully',
+      data: parsedData,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const scoreResumeController = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const validationResult = resumeIdParamSchema.safeParse(req.params);
+
+    if (!validationResult.success) {
+      const error: CustomError = new Error(validationResult.error.errors[0].message);
+      error.statusCode = 400;
+      return next(error);
+    }
+
+    const userId = req.user!.id;
+    const { calculateAtsScore } = await import('../services/atsScoring.service.js');
+    const scoreData = await calculateAtsScore(validationResult.data.id, userId);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Resume ATS score calculated successfully',
+      data: scoreData,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+

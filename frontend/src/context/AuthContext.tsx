@@ -29,11 +29,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           const currentUser = await authService.getMe();
           setUser(currentUser);
           setToken(storedToken);
-        } catch {
-          // Token expired or invalid
-          localStorage.removeItem(TOKEN_KEY);
-          setToken(null);
-          setUser(null);
+        } catch (error: any) {
+          // Only clear token if it's explicitly rejected by the server (Unauthorized/Forbidden)
+          // Do not log the user out if it's just a network error or server timeout during refresh!
+          if (error?.response?.status === 401 || error?.response?.status === 403) {
+            localStorage.removeItem(TOKEN_KEY);
+            setToken(null);
+            setUser(null);
+          }
         }
       }
       setLoading(false);

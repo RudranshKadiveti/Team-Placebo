@@ -45,6 +45,8 @@ model Resume {
   fileSize         Int
   storageKey       String
   rawText          String?       @db.Text
+  structuredContent Json?
+  atsScore         Json?
   uploadedAt       DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
 

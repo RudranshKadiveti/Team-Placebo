@@ -4,24 +4,14 @@ const require = createRequire(import.meta.url);
 
 export const extractTextFromPdf = async (pdfBuffer: Buffer): Promise<string> => {
   try {
-    const pdfModule = require('pdf-parse');
-    let fn = pdfModule;
-    if (typeof fn !== 'function' && fn.default) {
-      fn = fn.default;
+    const fn = require('pdf-parse');
+    const data = await fn(pdfBuffer);
+    if (data?.text) {
+      return data.text.replace(/\0/g, '').trim();
     }
-
-    if (typeof fn === 'function') {
-      const data = await fn(pdfBuffer);
-      if (data?.text) {
-        return data.text.replace(/\0/g, '').trim();
-      }
-    }
-  } catch (error) {
-    console.error('PDF text extraction parser error:', error);
+  } catch (error: any) {
+    console.error('PDF text extraction parser error:', error.message);
+    throw new Error(`Failed to extract text from PDF: ${error.message}`);
   }
-
-  // Robust null-byte sanitized text extractor fallback for PDF binary buffers
-  const rawText = pdfBuffer.toString('utf-8').replace(/\0/g, '');
-  const printableText = rawText.replace(/[^\x20-\x7E\n\r\t]/g, ' ');
-  return printableText.trim();
+  throw new Error('PDF parsing failed to return text.');
 };

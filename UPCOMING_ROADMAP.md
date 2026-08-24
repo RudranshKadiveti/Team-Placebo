@@ -6,22 +6,10 @@ This document outlines all remaining phases and features to be implemented in Ca
 
 ## 📌 REMAINING PHASES & ROADMAP
 
-### Phase 4C — Structured Resume Section Parsing
-- Parse raw resume text into structured sections (Summary, Technical Skills, Professional Experience, Education, Projects, Certifications).
-- Store structured JSON output in database (`structuredContent`).
-
-### Phase 4D — AI Resume ATS Scoring & Performance Engine
-- Implement ATS scoring algorithm evaluating:
-  - Overall ATS Match Score (0–100%).
-  - Keyword Match Ratio (e.g., 18/25).
-  - Formatting Check & Readability Score.
-  - Section Completeness Score.
-  - Actionable Improvement Suggestions.
-- Render dynamic ATS performance breakdown UI on Dashboard.
-
-### Phase 4E — AI Resume Bullet Point Tailoring & Enhancement
-- AI-assisted bullet point rewriting for high impact (Action Verb + Context + Quantifiable Result).
-- Target role skill gap identification.
+### Phase 4E — AI Resume Bullet Point Tailoring & Enhancement (NEXT)
+- **AI-assisted Bullet Point Rewriting:** Feature that rewrites weak resume bullet points into high-impact ATS-optimized statements (Action Verb + Context + Quantifiable Result).
+- **Target Role Skill Gap Identification:** Allow users to input a target Job Title or Description. The AI compares it against their parsed resume and identifies missing keywords, skills, or experience gaps.
+- **Dynamic Action Plan:** Generate actionable steps on how to bridge the identified skill gaps.
 
 ### Phase 5 — Job Scraping Engine & Market Intelligence Integration
 - Plug-and-play integration of external job scraper module.
@@ -48,4 +36,4 @@ This document outlines all remaining phases and features to be implemented in Ca
 
 ---
 
-## ⚡ NEXT IMMEDIATE STEP: Phase 4C (Structured Resume Parsing) or Phase 4D (ATS Performance Engine)
+## ⚡ NEXT IMMEDIATE STEP: Phase 4E (AI Resume Bullet Point Tailoring & Enhancement)

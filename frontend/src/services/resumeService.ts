@@ -1,5 +1,34 @@
 import { apiClient } from './api';
 
+export interface AtsScore {
+  overallScore: number;
+  pointBreakdown: {
+    sectionPoints: number;
+    formattingPoints: number;
+    keywordPoints: number;
+    lostSectionPoints: number;
+    lostFormattingPoints: number;
+    lostKeywordPoints: number;
+  };
+  semanticMatch: {
+    score: number;
+    similarityPercent: number;
+  };
+  formattingCheck: {
+    passed: boolean;
+    issues: string[];
+  };
+  sectionCompleteness: {
+    score: number;
+    missingSections: string[];
+  };
+  readability: {
+    status: 'Poor' | 'Moderate' | 'Optimal';
+    suggestions: string[];
+  };
+  actionableSuggestions: string[];
+}
+
 export interface ResumeMetadata {
   id: string;
   userId: string;
@@ -7,6 +36,7 @@ export interface ResumeMetadata {
   fileType: string;
   fileSize: number;
   storageKey: string;
+  atsScore?: AtsScore;
   uploadedAt: string;
   updatedAt: string;
 }
@@ -45,6 +75,16 @@ export const resumeService = {
         },
       }
     );
+    return response.data;
+  },
+
+  scoreResume: async (id: string): Promise<{ success: boolean; data: AtsScore }> => {
+    const response = await apiClient.post<{ success: boolean; data: AtsScore }>(`/resumes/${id}/score`);
+    return response.data;
+  },
+
+  parseResume: async (id: string): Promise<{ success: boolean; data: any }> => {
+    const response = await apiClient.post<{ success: boolean; data: any }>(`/resumes/${id}/parse`);
     return response.data;
   },
 };

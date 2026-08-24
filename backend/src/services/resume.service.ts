@@ -11,6 +11,7 @@ export interface ResumeMetadata {
   fileType: string;
   fileSize: number;
   storageKey: string;
+  atsScore?: any;
   uploadedAt: Date;
   updatedAt: Date;
 }
