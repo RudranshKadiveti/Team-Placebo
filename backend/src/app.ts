@@ -37,6 +37,7 @@ app.use('/api', healthRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/resumes', resumeRoutes);
+app.use('/api/resume', resumeRoutes);
 
 // 404 & Error Handlers
 app.use(notFoundHandler);
