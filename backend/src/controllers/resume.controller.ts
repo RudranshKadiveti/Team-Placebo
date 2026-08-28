@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
-import { getUserResumes, getResumeById, createResumeRecord } from '../services/resume.service.js';
+import { getUserResumes, getResumeById, createResumeRecord, deleteResumeRecord } from '../services/resume.service.js';
 import { generateResumeEmbeddings } from '../services/resumeEmbedding.service.js';
 import { storageService } from '../services/storage.service.js';
 import { resumeIdParamSchema } from '../validators/resume.validator.js';
@@ -36,6 +36,28 @@ export const getResumeByIdController = async (req: Request, res: Response, next:
     return res.status(200).json({
       success: true,
       data: resume,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const deleteResumeController = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const validationResult = resumeIdParamSchema.safeParse(req.params);
+
+    if (!validationResult.success) {
+      const error: CustomError = new Error(validationResult.error.errors[0].message);
+      error.statusCode = 400;
+      return next(error);
+    }
+
+    const userId = req.user!.id;
+    const result = await deleteResumeRecord(validationResult.data.id, userId);
+
+    return res.status(200).json({
+      success: true,
+      message: result.message,
     });
   } catch (error) {
     return next(error);

@@ -109,6 +109,11 @@ export const resumeService = {
     return response.data;
   },
 
+  deleteResume: async (id: string): Promise<{ success: boolean; message: string }> => {
+    const response = await apiClient.delete<{ success: boolean; message: string }>(`/resumes/${id}`);
+    return response.data;
+  },
+
   uploadResume: async (file: File): Promise<{ success: boolean; data: ResumeMetadata }> => {
     const formData = new FormData();
     formData.append('resume', file);

@@ -3,6 +3,7 @@ import {
   getResumes,
   getResumeByIdController,
   uploadResumeController,
+  deleteResumeController,
   embedResumeController,
   parseResumeController,
   scoreResumeController,
@@ -26,5 +27,6 @@ router.post('/:id/embed', embedResumeController);
 router.post('/:id/parse', parseResumeController);
 router.post('/:id/score', scoreResumeController);
 router.get('/:id', getResumeByIdController);
+router.delete('/:id', deleteResumeController);
 
 export default router;

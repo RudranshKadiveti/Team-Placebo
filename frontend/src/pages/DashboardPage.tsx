@@ -23,6 +23,7 @@ import {
   FileCode,
   Sparkles,
   Search,
+  Trash2,
 } from 'lucide-react';
 
 export const DashboardPage: React.FC = () => {
@@ -118,6 +119,31 @@ export const DashboardPage: React.FC = () => {
       } finally {
         setUploading(false);
       }
+    }
+  };
+
+  // Resume Delete Handler
+  const handleDeleteResume = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!window.confirm('Are you sure you want to remove this resume from Resume Intelligence?')) {
+      return;
+    }
+
+    try {
+      await resumeService.deleteResume(id);
+      const updatedResumes = resumes.filter((r) => r.id !== id);
+      setResumes(updatedResumes);
+
+      if (selectedResumeId === id) {
+        if (updatedResumes.length > 0) {
+          handleSelectResume(updatedResumes[0]);
+        } else {
+          setSelectedResumeId(null);
+          setAtsScore(null);
+        }
+      }
+    } catch {
+      // Gracefully handle delete error
     }
   };
 
@@ -348,7 +374,7 @@ export const DashboardPage: React.FC = () => {
           </div>
         </section>
 
-        {/* Resume Intelligence Section with Interactive Selection */}
+        {/* Resume Intelligence Section with Delete Feature & Selection */}
         <section className="p-6 rounded-2xl bg-slate-800/30 border border-slate-800 space-y-4">
           <div className="flex items-center justify-between border-b border-slate-800 pb-3">
             <div className="flex items-center gap-2">
@@ -405,6 +431,13 @@ export const DashboardPage: React.FC = () => {
                         }`}
                       >
                         {isSelected ? '✓ Active' : 'Select'}
+                      </button>
+                      <button
+                        onClick={(e) => handleDeleteResume(r.id, e)}
+                        title="Remove resume from Resume Intelligence"
+                        className="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-slate-700/60 hover:border-rose-500/30 transition-all"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </div>
@@ -529,7 +562,15 @@ export const DashboardPage: React.FC = () => {
 
         {/* TAB 2: PHASE 4E TARGET ROLE ANALYSIS & ACTION PLAN */}
         {activeTab === 'role_analysis' && (
-          <div className="animate-in fade-in duration-200">
+          <div className="animate-in fade-in duration-200 space-y-4">
+            <div className="flex justify-end">
+              <button
+                onClick={() => setActiveTab('ats')}
+                className="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium transition-colors"
+              >
+                ← Return to ATS Overview
+              </button>
+            </div>
             {activeResumeObj ? (
               <RoleAnalysisDashboard resumeId={activeResumeObj.id} />
             ) : (

@@ -80,6 +80,39 @@ export const getResumeById = async (id: string, userId: string): Promise<ResumeM
 };
 
 /**
+ * Delete a resume record owned by the user.
+ */
+export const deleteResumeRecord = async (id: string, userId: string) => {
+  const resume = await prisma.resume.findUnique({
+    where: { id },
+  });
+
+  if (!resume) {
+    const error: CustomError = new Error('Resume not found');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  if (resume.userId !== userId) {
+    const error: CustomError = new Error('Access denied: You do not own this resume');
+    error.statusCode = 403;
+    throw error;
+  }
+
+  // Delete associated vector chunks
+  await prisma.resumeChunk.deleteMany({
+    where: { resumeId: id },
+  });
+
+  // Delete resume record
+  await prisma.resume.delete({
+    where: { id },
+  });
+
+  return { message: 'Resume deleted successfully' };
+};
+
+/**
  * Persist new resume metadata record in database.
  */
 export const createResumeRecord = async (data: {

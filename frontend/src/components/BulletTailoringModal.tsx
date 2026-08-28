@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BulletTailoringResult, resumeService } from '../services/resumeService';
-import { Sparkles, Copy, Check, RefreshCw, Edit3, X, Zap, Lightbulb, AlertCircle, ArrowRight } from 'lucide-react';
+import { Sparkles, Copy, Check, RefreshCw, Edit3, X, Zap, Lightbulb, AlertCircle, ArrowRight, LogOut } from 'lucide-react';
 
 interface BulletTailoringModalProps {
   isOpen: boolean;
@@ -28,6 +28,17 @@ export const BulletTailoringModal: React.FC<BulletTailoringModalProps> = ({
   const [copied, setCopied] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedBullet, setEditedBullet] = useState('');
+
+  // Close on Escape key press
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -69,9 +80,15 @@ export const BulletTailoringModal: React.FC<BulletTailoringModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md overflow-y-auto">
-      <div className="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-8 shadow-2xl space-y-6 relative my-8">
-        {/* Header */}
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md overflow-y-auto animate-in fade-in duration-200"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-8 shadow-2xl space-y-6 relative my-8"
+      >
+        {/* Header with Exit controls */}
         <div className="flex items-center justify-between border-b border-slate-800 pb-4">
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-xl bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-blue-400 border border-blue-500/30">
@@ -82,12 +99,21 @@ export const BulletTailoringModal: React.FC<BulletTailoringModalProps> = ({
               <p className="text-xs text-slate-400">Action Verb + Context + Tech Detail + Impact Structure</p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors"
-          >
-            <X className="w-4 h-4" />
-          </button>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onClose}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-rose-500/20 border border-slate-700 hover:border-rose-500/30 text-slate-300 hover:text-rose-300 text-xs font-semibold transition-all"
+            >
+              <LogOut className="w-3.5 h-3.5" /> Exit Enhancer
+            </button>
+            <button
+              onClick={onClose}
+              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         {/* Input Form */}
@@ -139,14 +165,22 @@ export const BulletTailoringModal: React.FC<BulletTailoringModalProps> = ({
             />
           </div>
 
-          <button
-            onClick={handleTailor}
-            disabled={loading || !bulletText.trim()}
-            className="w-full inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold text-xs transition-all shadow-lg shadow-blue-600/20 active:scale-[0.99] disabled:opacity-50"
-          >
-            {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-            {loading ? 'Tailoring Bullet Point...' : 'Enhance Bullet Point with AI'}
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={handleTailor}
+              disabled={loading || !bulletText.trim()}
+              className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold text-xs transition-all shadow-lg shadow-blue-600/20 active:scale-[0.99] disabled:opacity-50"
+            >
+              {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+              {loading ? 'Tailoring Bullet Point...' : 'Enhance Bullet Point with AI'}
+            </button>
+            <button
+              onClick={onClose}
+              className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-colors"
+            >
+              Cancel / Exit
+            </button>
+          </div>
         </div>
 
         {/* Results Panel */}
@@ -252,14 +286,23 @@ export const BulletTailoringModal: React.FC<BulletTailoringModalProps> = ({
                 <RefreshCw className="w-3.5 h-3.5" /> Regenerate
               </button>
 
-              {onReplaceBullet && (
+              <div className="flex items-center gap-2">
                 <button
-                  onClick={handleReplace}
-                  className="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition-all shadow-lg shadow-emerald-600/20"
+                  onClick={onClose}
+                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-colors"
                 >
-                  Replace Original Bullet <ArrowRight className="w-3.5 h-3.5" />
+                  Exit Builder
                 </button>
-              )}
+
+                {onReplaceBullet && (
+                  <button
+                    onClick={handleReplace}
+                    className="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition-all shadow-lg shadow-emerald-600/20"
+                  >
+                    Replace Original Bullet <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         )}
