@@ -1,5 +1,11 @@
 import type { Request, Response, NextFunction } from 'express';
-import { registerUser, loginUser, getUserById } from '../services/auth.service.js';
+import {
+  registerUser,
+  loginUser,
+  getUserById,
+  requestPasswordReset,
+  resetPasswordWithToken,
+} from '../services/auth.service.js';
 
 export const register = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -21,6 +27,32 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
       success: true,
       message: 'Login successful',
       data: result,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const forgotPassword = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { email } = req.body;
+    const result = await requestPasswordReset(email);
+    return res.status(200).json({
+      success: true,
+      message: result.message,
+      data: result,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const resetPassword = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await resetPasswordWithToken(req.body);
+    return res.status(200).json({
+      success: true,
+      message: result.message,
     });
   } catch (error) {
     return next(error);
@@ -49,7 +81,6 @@ export const getMe = async (req: Request, res: Response, next: NextFunction) => 
 };
 
 export const logout = async (_req: Request, res: Response) => {
-  // Clear any authorization cookies if set; token state client side is invalidated
   return res.status(200).json({
     success: true,
     message: 'Logged out successfully',
