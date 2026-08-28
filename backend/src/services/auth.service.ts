@@ -16,12 +16,6 @@ export interface LoginDTO {
   password: string;
 }
 
-export interface ResetPasswordDTO {
-  email: string;
-  resetToken: string;
-  newPassword: string;
-}
-
 export interface UserResponse {
   id: string;
   name: string;
@@ -34,9 +28,6 @@ export interface AuthResponse {
   user: UserResponse;
   token: string;
 }
-
-// Memory store for password reset PIN tokens (valid 15 mins)
-const passwordResetTokens = new Map<string, { token: string; expiresAt: number }>();
 
 const sanitizeUser = (user: {
   id: string;
@@ -173,95 +164,4 @@ export const getUserById = async (id: string): Promise<UserResponse> => {
   }
 
   return sanitizeUser(user);
-};
-
-/**
- * Request Password Reset Token / PIN
- */
-export const requestPasswordReset = async (email: string) => {
-  if (!email || !email.trim()) {
-    const error: CustomError = new Error('Email address is required');
-    error.statusCode = 400;
-    throw error;
-  }
-
-  const normalizedEmail = email.toLowerCase().trim();
-
-  const user = await prisma.user.findUnique({
-    where: { email: normalizedEmail },
-  });
-
-  if (!user) {
-    const error: CustomError = new Error('No user account found with this email address');
-    error.statusCode = 404;
-    throw error;
-  }
-
-  // Generate 6-digit PIN token
-  const resetToken = Math.floor(100000 + Math.random() * 900000).toString();
-  const expiresAt = Date.now() + 15 * 60 * 1000; // 15 mins
-
-  passwordResetTokens.set(normalizedEmail, { token: resetToken, expiresAt });
-
-  return {
-    message: 'Password reset PIN generated successfully.',
-    resetToken,
-    email: normalizedEmail,
-  };
-};
-
-/**
- * Reset Password using Reset PIN Token
- */
-export const resetPasswordWithToken = async (data: ResetPasswordDTO) => {
-  const { email, resetToken, newPassword } = data;
-
-  if (!email || !resetToken || !newPassword) {
-    const error: CustomError = new Error('Email, reset PIN, and new password are required');
-    error.statusCode = 400;
-    throw error;
-  }
-
-  if (newPassword.length < 8) {
-    const error: CustomError = new Error('New password must be at least 8 characters long');
-    error.statusCode = 400;
-    throw error;
-  }
-
-  const normalizedEmail = email.toLowerCase().trim();
-
-  const stored = passwordResetTokens.get(normalizedEmail);
-  if (!stored || stored.token !== resetToken.trim()) {
-    const error: CustomError = new Error('Invalid or expired password reset PIN');
-    error.statusCode = 400;
-    throw error;
-  }
-
-  if (Date.now() > stored.expiresAt) {
-    passwordResetTokens.delete(normalizedEmail);
-    const error: CustomError = new Error('Password reset PIN has expired. Please request a new PIN.');
-    error.statusCode = 400;
-    throw error;
-  }
-
-  const user = await prisma.user.findUnique({
-    where: { email: normalizedEmail },
-  });
-
-  if (!user) {
-    const error: CustomError = new Error('User not found');
-    error.statusCode = 404;
-    throw error;
-  }
-
-  const newPasswordHash = await bcrypt.hash(newPassword, BCRYPT_SALT_ROUNDS);
-
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { passwordHash: newPasswordHash },
-  });
-
-  passwordResetTokens.delete(normalizedEmail);
-
-  return { message: 'Password has been reset successfully. You can now sign in with your new password.' };
 };

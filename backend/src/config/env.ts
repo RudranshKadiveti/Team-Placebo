@@ -14,6 +14,9 @@ const envSchema = z.object({
   JWT_EXPIRES_IN: z.string().default('7d'),
   OPENAI_API_KEY: z.string().optional().default(''),
   GEMINI_API_KEY: z.string().optional().default(''),
+  GITHUB_CLIENT_ID: z.string().optional().default(''),
+  GITHUB_CLIENT_SECRET: z.string().optional().default(''),
+  GITHUB_TOKEN: z.string().optional().default(''),
 });
 
 const parseEnv = () => {

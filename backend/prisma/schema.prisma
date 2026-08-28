@@ -21,8 +21,10 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  profile Profile?
-  resumes Resume[]
+  profile          Profile?
+  resumes          Resume[]
+  githubConnection GitHubConnection?
+  githubRepos      GitHubRepository[]
 
   @@map("users")
 }
@@ -99,4 +101,78 @@ model CareerGoal {
   profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
   @@map("career_goals")
+}
+
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  email     String   @unique
+  tokenHash String
+  attempts  Int      @default(0)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@map("password_reset_tokens")
+}
+
+model GitHubConnection {
+  id                   String    @id @default(uuid())
+  userId               String    @unique
+  githubUserId         String?
+  username             String
+  accessTokenEncrypted String?
+  scopes               String?
+  connectedAt          DateTime  @default(now())
+  lastSyncedAt         DateTime?
+  lastAnalyzedAt       DateTime?
+  tokenUpdatedAt       DateTime?
+
+  user  User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  repos GitHubRepository[]
+
+  @@map("github_connections")
+}
+
+model GitHubRepository {
+  id                 String   @id @default(uuid())
+  userId             String
+  connectionId       String
+  githubRepoId       Int
+  name               String
+  fullName           String
+  description        String?
+  htmlUrl            String
+  cloneUrl           String?
+  defaultBranch      String   @default("main")
+  isPrivate          Boolean  @default(false)
+  isFork             Boolean  @default(false)
+  isArchived         Boolean  @default(false)
+  isTemplate         Boolean  @default(false)
+  createdAt          DateTime
+  updatedAt          DateTime
+  pushedAt           DateTime
+  size               Int      @default(0)
+  stargazersCount    Int      @default(0)
+  watchersCount      Int      @default(0)
+  forksCount         Int      @default(0)
+  openIssuesCount    Int      @default(0)
+  primaryLanguage    String?
+  topicsJson         String?
+  languagesJson      String?
+  dependenciesJson   String?
+  relevanceScore     Int      @default(50)
+  classification     String   @default("Other")
+  complexityScore    Int      @default(50)
+  healthScore        Int      @default(50)
+  documentationScore Int      @default(50)
+  testingScore       Int      @default(50)
+  cicdScore          Int      @default(50)
+  analysisJson       String?
+  lastSyncedAt       DateTime @default(now())
+
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  connection GitHubConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, githubRepoId])
+  @@map("github_repositories")
 }

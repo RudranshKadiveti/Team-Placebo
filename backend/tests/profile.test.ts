@@ -138,7 +138,7 @@ describe('Profile & Career Goals API Tests', () => {
           graduationYear: 1800,
         });
 
-      expect(res.statusCode).toBe(500); // Caught by centralized handler / Zod
+      expect(res.statusCode).toBe(400); // Caught by centralized handler / Zod
       expect(res.body.success).toBe(false);
     });
 
@@ -150,7 +150,7 @@ describe('Profile & Career Goals API Tests', () => {
           experienceLevel: 'SUPER_EXPERT_INVALID',
         });
 
-      expect(res.statusCode).toBe(500);
+      expect(res.statusCode).toBe(400);
       expect(res.body.success).toBe(false);
     });
 
@@ -163,7 +163,7 @@ describe('Profile & Career Goals API Tests', () => {
           priority: 1,
         });
 
-      expect(res.statusCode).toBe(500);
+      expect(res.statusCode).toBe(400);
       expect(res.body.success).toBe(false);
     });
 
@@ -176,7 +176,7 @@ describe('Profile & Career Goals API Tests', () => {
           priority: 0,
         });
 
-      expect(res.statusCode).toBe(500);
+      expect(res.statusCode).toBe(400);
       expect(res.body.success).toBe(false);
     });
   });

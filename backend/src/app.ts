@@ -7,6 +7,7 @@ import healthRoutes from './routes/health.routes.js';
 import authRoutes from './routes/auth.routes.js';
 import profileRoutes from './routes/profile.routes.js';
 import resumeRoutes from './routes/resume.routes.js';
+import githubRoutes from './routes/github.routes.js';
 import { notFoundHandler } from './middleware/notFound.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
@@ -38,6 +39,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/resumes', resumeRoutes);
 app.use('/api/resume', resumeRoutes);
+app.use('/api/github', githubRoutes);
 
 // 404 & Error Handlers
 app.use(notFoundHandler);

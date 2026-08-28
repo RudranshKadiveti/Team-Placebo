@@ -1,4 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
+import { ZodError } from 'zod';
 import { env } from '../config/env.js';
 
 export interface CustomError extends Error {
@@ -14,6 +15,11 @@ export const errorHandler = (
 ) => {
   let statusCode = err.statusCode || 500;
 
+  // Handle Zod validation errors
+  if (err instanceof ZodError || (err as any).name === 'ZodError') {
+    statusCode = 400;
+  }
+
   // Handle Multer validation & limit errors
   if (
     err.message &&
@@ -26,7 +32,9 @@ export const errorHandler = (
 
   const message = err.message || 'Internal Server Error';
 
-  console.error('Unhandled Error:', err);
+  if (env.NODE_ENV !== 'test') {
+    console.error('Unhandled Error:', err);
+  }
 
   res.status(statusCode).json({
     success: false,
