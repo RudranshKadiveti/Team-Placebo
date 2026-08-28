@@ -47,10 +47,21 @@ export const DashboardPage: React.FC = () => {
         ]);
         setProfile(profileData.profile);
         setCompletionPercentage(profileData.completionPercentage);
-        if (resumeData.success && Array.isArray(resumeData.data)) {
+        if (resumeData.success && Array.isArray(resumeData.data) && resumeData.data.length > 0) {
           setResumes(resumeData.data);
-          if (resumeData.data.length > 0 && resumeData.data[0].atsScore) {
-            setAtsScore(resumeData.data[0].atsScore);
+          const latestResume = resumeData.data[0];
+          if (latestResume.atsScore) {
+            setAtsScore(latestResume.atsScore);
+          } else {
+            // Auto calculate ATS score for latest resume
+            try {
+              const scoreRes = await resumeService.scoreResume(latestResume.id);
+              if (scoreRes.success && scoreRes.data) {
+                setAtsScore(scoreRes.data);
+              }
+            } catch {
+              // Gracefully handle scoring error
+            }
           }
         }
       } catch {
@@ -172,7 +183,7 @@ export const DashboardPage: React.FC = () => {
           </p>
         </header>
 
-        {/* Main Anti-Gravity Metric Cards */}
+        {/* Main Metric Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Career Goal Card */}
           <div className="p-5 rounded-2xl bg-slate-800/40 border border-slate-700/50 hover:border-indigo-500/40 hover:shadow-xl hover:shadow-indigo-500/10 hover:-translate-y-1 transition-all duration-300 group">
@@ -234,7 +245,7 @@ export const DashboardPage: React.FC = () => {
             </button>
           </div>
 
-          {/* 2x2 Quick Action Grid with Distinct Unique Routes */}
+          {/* 2x2 Quick Action Grid */}
           <div className="grid grid-cols-2 gap-3 pt-2">
             <button
               onClick={() => handleQuickAction('Edit Bio', '/profile#bio')}
@@ -278,7 +289,7 @@ export const DashboardPage: React.FC = () => {
           </div>
         </section>
 
-        {/* Phase 4A Resume Intelligence Foundation Section */}
+        {/* Resume Intelligence Foundation Section */}
         <section className="p-6 rounded-2xl bg-slate-800/30 border border-slate-800 space-y-4">
           <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
             <FileCode className="w-5 h-5 text-blue-400" />
@@ -286,7 +297,7 @@ export const DashboardPage: React.FC = () => {
           </div>
           {resumes.length === 0 ? (
             <p className="text-xs text-slate-400 font-medium italic">
-              No resume uploaded yet.
+              No resume uploaded yet. Upload a PDF resume below to view your ATS score!
             </p>
           ) : (
             <div className="space-y-2">
@@ -312,9 +323,9 @@ export const DashboardPage: React.FC = () => {
                 <p className="text-xs text-slate-400">Real-life Applicant Tracking System analytics</p>
               </div>
             </div>
-            {resumeFile && (
+            {(resumeFile || resumes.length > 0) && (
               <span className="text-[11px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full flex items-center gap-1">
-                <FileCheck className="w-3.5 h-3.5" /> {resumeFile.name}
+                <FileCheck className="w-3.5 h-3.5" /> {resumeFile ? resumeFile.name : resumes[0].originalFileName}
               </span>
             )}
           </div>
@@ -349,7 +360,7 @@ export const DashboardPage: React.FC = () => {
                 </div>
               </div>
               <span className="text-xs font-semibold text-slate-300">
-                {uploading ? 'Analyzing Resume...' : (atsScore?.overallScore || 0) >= 80 ? 'Optimal Match' : 'Good Match'}
+                {uploading ? 'Analyzing Resume...' : (atsScore?.overallScore || 0) >= 80 ? 'Optimal Match' : (atsScore?.overallScore || 0) > 0 ? 'Good Match' : 'Upload Resume to Score'}
               </span>
             </div>
 
@@ -374,7 +385,7 @@ export const DashboardPage: React.FC = () => {
                 <span className="text-xs font-medium text-slate-300">Impact Readability</span>
                 <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-md border ${atsScore?.readability?.status === 'Optimal' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : atsScore?.readability?.status === 'Poor' ? 'text-red-400 bg-red-500/10 border-red-500/20' : 'text-amber-400 bg-amber-500/10 border-amber-500/20'}`}>
                   {atsScore?.readability?.status === 'Optimal' ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />} 
-                  {atsScore?.readability?.status || 'Unknown'}
+                  {atsScore?.readability?.status || 'Pending'}
                 </span>
               </div>
             </div>
@@ -474,7 +485,7 @@ export const DashboardPage: React.FC = () => {
                 <UploadCloud className="w-6 h-6" />
               </div>
               <p className="text-xs font-semibold text-slate-200">
-                {uploading ? 'Processing resume PDF...' : 'Click to upload or drag & drop new resume'}
+                {uploading ? 'Processing resume PDF & calculating ATS score...' : 'Click to upload or drag & drop new resume'}
               </p>
               <p className="text-[11px] text-slate-500">Supports PDF, DOC, DOCX (Max 10MB)</p>
             </div>

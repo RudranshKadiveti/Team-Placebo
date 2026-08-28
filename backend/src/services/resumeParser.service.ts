@@ -1,6 +1,6 @@
 /**
  * Resume Parser Service (Phase 4C)
- * Parses raw resume text into structured sections using heuristics and regex.
+ * Parses raw resume text into structured sections using AI or deterministic regex fallbacks.
  */
 
 export interface StructuredResume {
@@ -16,7 +16,11 @@ export interface StructuredResume {
 import OpenAI from 'openai';
 import { env } from '../config/env.js';
 
-export const parseResumeTextWithAI = async (text: string): Promise<StructuredResume> => {
+/**
+ * Deterministic Regex-based Resume Section Extractor Fallback
+ */
+
+export const parseResumeTextDeterministic = (text: string): StructuredResume => {
   const result: StructuredResume = {
     summary: null,
     skills: null,
@@ -26,13 +30,71 @@ export const parseResumeTextWithAI = async (text: string): Promise<StructuredRes
     certifications: null,
   };
 
-  if (!text || !text.trim()) {
-    return result;
+  if (!text || !text.trim()) return result;
+
+  const lines = text.split(/\r?\n/);
+  let currentSection: keyof StructuredResume | null = null;
+  const sectionBuffers: Record<string, string[]> = {
+    summary: [],
+    skills: [],
+    experience: [],
+    education: [],
+    projects: [],
+    certifications: [],
+  };
+
+  const headerPatterns: Array<{ key: keyof StructuredResume; regex: RegExp }> = [
+    { key: 'summary', regex: /^(?:summary|profile|about me|objective|executive summary)/i },
+    { key: 'skills', regex: /^(?:skills|technical skills|core competencies|technologies|expertise)/i },
+    { key: 'experience', regex: /^(?:experience|work experience|employment history|work history|professional experience)/i },
+    { key: 'education', regex: /^(?:education|academic background|qualifications|academic history)/i },
+    { key: 'projects', regex: /^(?:projects|academic projects|key projects|featured projects)/i },
+    { key: 'certifications', regex: /^(?:certifications|licenses|courses|certificates)/i },
+  ];
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+
+    let matchedHeader = false;
+    for (const { key, regex } of headerPatterns) {
+      if (regex.test(trimmed)) {
+        currentSection = key;
+        matchedHeader = true;
+        break;
+      }
+    }
+
+    if (!matchedHeader && currentSection) {
+      sectionBuffers[currentSection].push(trimmed);
+    }
   }
 
-  // PDFs with corrupted text layers or images can extract hundreds of thousands of garbage characters.
-  // We strictly limit the text to 15,000 characters (approx 3,000-4,000 tokens) which is more than enough for a standard resume.
+  for (const key of Object.keys(sectionBuffers)) {
+    if (sectionBuffers[key].length > 0) {
+      result[key] = sectionBuffers[key].join('\n');
+    }
+  }
+
+  // Fallback: If no section headers matched, populate skills and summary from raw text keywords
+  if (!result.skills && !result.experience) {
+    result.summary = text.substring(0, 500);
+    result.skills = text;
+  }
+
+  return result;
+};
+
+export const parseResumeTextWithAI = async (text: string): Promise<StructuredResume> => {
+  if (!text || !text.trim()) {
+    return parseResumeTextDeterministic(text);
+  }
+
   const safeText = text.substring(0, 15000);
+
+  if (!env.OPENAI_API_KEY || !env.OPENAI_API_KEY.trim()) {
+    return parseResumeTextDeterministic(safeText);
+  }
 
   try {
     const openai = new OpenAI({
@@ -67,28 +129,23 @@ ${safeText}
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.1,
     });
-    
-    let jsonString = response.choices[0].message.content || '{}';
-    
-    // Strip markdown formatting if the model accidentally included it
-    jsonString = jsonString.replace(/^```json/mi, '').replace(/```$/m, '').trim();
-    
-    const parsedData = JSON.parse(jsonString);
-    
-    // Map data back securely
-    result.summary = parsedData.summary || null;
-    result.skills = parsedData.skills || null;
-    result.experience = parsedData.experience || null;
-    result.education = parsedData.education || null;
-    result.projects = parsedData.projects || null;
-    result.certifications = parsedData.certifications || null;
 
-    return result;
+    let jsonString = response.choices[0].message.content || '{}';
+    jsonString = jsonString.replace(/^```json/mi, '').replace(/```$/m, '').trim();
+
+    const parsedData = JSON.parse(jsonString);
+
+    return {
+      summary: parsedData.summary || null,
+      skills: parsedData.skills || null,
+      experience: parsedData.experience || null,
+      education: parsedData.education || null,
+      projects: parsedData.projects || null,
+      certifications: parsedData.certifications || null,
+    };
   } catch (err: any) {
-    console.error('OpenAI Parsing Error:', err.message);
-    const error = new Error('Oops! Our AI parser is currently unavailable. Please try again in a few moments.') as any;
-    error.statusCode = 503;
-    throw error;
+    console.warn('OpenAI parsing unavailable, falling back to deterministic regex parser:', err.message);
+    return parseResumeTextDeterministic(safeText);
   }
 };
 
@@ -141,7 +198,7 @@ export const parseResumeRecord = async (resumeId: string, userId: string) => {
     where: { id: resumeId },
     data: { 
       rawText,
-      structuredContent: structuredContent as any 
+      structuredContent: JSON.stringify(structuredContent)
     },
   });
 

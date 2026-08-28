@@ -16,14 +16,30 @@ export interface ResumeMetadata {
   updatedAt: Date;
 }
 
+const parseAtsScoreField = (atsScore: any) => {
+  if (typeof atsScore === 'string') {
+    try {
+      return JSON.parse(atsScore);
+    } catch {
+      return null;
+    }
+  }
+  return atsScore;
+};
+
 /**
  * Retrieve all resume metadata records for the authenticated user.
  */
 export const getUserResumes = async (userId: string): Promise<ResumeMetadata[]> => {
-  return prisma.resume.findMany({
+  const resumes = await prisma.resume.findMany({
     where: { userId },
     orderBy: { uploadedAt: 'desc' },
   });
+
+  return resumes.map(r => ({
+    ...r,
+    atsScore: parseAtsScoreField(r.atsScore)
+  }));
 };
 
 /**
@@ -47,11 +63,14 @@ export const getResumeById = async (id: string, userId: string): Promise<ResumeM
     throw error;
   }
 
-  return resume;
+  return {
+    ...resume,
+    atsScore: parseAtsScoreField(resume.atsScore)
+  };
 };
 
 /**
- * Persist new resume metadata record in PostgreSQL.
+ * Persist new resume metadata record in database.
  */
 export const createResumeRecord = async (data: {
   userId: string;

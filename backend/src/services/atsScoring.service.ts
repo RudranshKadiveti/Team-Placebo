@@ -1,6 +1,6 @@
 import { prisma } from '../config/database.js';
 import { CustomError } from './resume.service.js';
-import { StructuredResume } from './resumeParser.service.js';
+import { StructuredResume, parseResumeRecord } from './resumeParser.service.js';
 import { generateEmbedding } from './embedding.service.js';
 
 export interface AtsScore {
@@ -54,15 +54,31 @@ export const calculateAtsScore = async (resumeId: string, userId: string): Promi
     throw error;
   }
 
-  const structuredContent = resume.structuredContent as unknown as StructuredResume;
-  const rawText = resume.rawText || '';
+  let structuredContentObj: StructuredResume | null = null;
 
-  if (!structuredContent) {
-    const error: CustomError = new Error('Resume has not been parsed yet. No structured content found.');
-    error.statusCode = 400;
-    throw error;
+  if (resume.structuredContent) {
+    if (typeof resume.structuredContent === 'string') {
+      try {
+        structuredContentObj = JSON.parse(resume.structuredContent);
+      } catch {
+        structuredContentObj = null;
+      }
+    } else {
+      structuredContentObj = resume.structuredContent as unknown as StructuredResume;
+    }
   }
 
+  // Auto-parse if structured content is missing
+  if (!structuredContentObj) {
+    const updated = await parseResumeRecord(resumeId, userId);
+    if (typeof updated.structuredContent === 'string') {
+      structuredContentObj = JSON.parse(updated.structuredContent);
+    } else {
+      structuredContentObj = updated.structuredContent as unknown as StructuredResume;
+    }
+  }
+
+  const rawText = resume.rawText || '';
   const actionableSuggestions: string[] = [];
   let lostSectionPoints = 0;
   let lostFormattingPoints = 0;
@@ -74,7 +90,8 @@ export const calculateAtsScore = async (resumeId: string, userId: string): Promi
   let sectionPoints = 0;
 
   expectedSections.forEach(section => {
-    if (structuredContent[section] && (structuredContent[section] as string).trim().length > 5) {
+    const val = structuredContentObj?.[section];
+    if (val && typeof val === 'string' && val.trim().length > 5) {
       sectionPoints += (30 / expectedSections.length);
     } else {
       missingSections.push(section);
@@ -91,7 +108,7 @@ export const calculateAtsScore = async (resumeId: string, userId: string): Promi
   const formattingIssues: string[] = [];
   let readabilityStatus: 'Poor' | 'Moderate' | 'Optimal' = 'Optimal';
   
-  const wordCount = rawText.split(/\s+/).length;
+  const wordCount = rawText.split(/\s+/).filter(Boolean).length;
   if (wordCount < 100) {
     formattingPoints -= 10;
     lostFormattingPoints += 10;
@@ -117,7 +134,6 @@ export const calculateAtsScore = async (resumeId: string, userId: string): Promi
   }
 
   // 3. Semantic Vector Search / Match (Max 40 points)
-  // Define ideal baseline semantics (Software, Data, Cloud)
   let targetProfile = "javascript typescript react node python sql aws docker kubernetes agile architecture system design software engineering algorithms data structures";
   
   const careerGoals = resume.user.profile?.careerGoals;
@@ -126,19 +142,12 @@ export const calculateAtsScore = async (resumeId: string, userId: string): Promi
   }
 
   const idealVector = await generateEmbedding(targetProfile);
-  // Extract key contextual parts of resume (or raw text fallback)
-  const resumeContext = [structuredContent.skills || '', structuredContent.summary || '', structuredContent.experience || ''].join(' ');
+  const resumeContext = [structuredContentObj?.skills || '', structuredContentObj?.summary || '', structuredContentObj?.experience || ''].join(' ');
   const textToEmbed = resumeContext.trim().length > 50 ? resumeContext : rawText.substring(0, 500);
   const resumeVector = await generateEmbedding(textToEmbed);
   
-  // Calculate Cosine Similarity (vectors are already L2 normalized)
   const dotProduct = idealVector.reduce((sum, val, i) => sum + val * resumeVector[i], 0);
-  
-  // A much more forgiving curve. Give a baseline of 50% for any tech resume.
-  // Map roughly 0.1-0.6 to 0-100%
   const similarityPercent = Math.min(Math.max((dotProduct - 0.1) / 0.5, 0), 1) * 100;
-  
-  // Guarantee a minimum baseline of 20 points for semantic match if they put in any effort
   const keywordPoints = Math.min(20 + 20 * (similarityPercent / 100), 40);
   lostKeywordPoints = 40 - keywordPoints;
 
@@ -179,7 +188,7 @@ export const calculateAtsScore = async (resumeId: string, userId: string): Promi
 
   await prisma.resume.update({
     where: { id: resumeId },
-    data: { atsScore: atsScore as any },
+    data: { atsScore: JSON.stringify(atsScore) },
   });
 
   return atsScore;
