@@ -131,19 +131,23 @@ export const DashboardPage: React.FC = () => {
 
     try {
       await resumeService.deleteResume(id);
-      const updatedResumes = resumes.filter((r) => r.id !== id);
-      setResumes(updatedResumes);
-
-      if (selectedResumeId === id) {
-        if (updatedResumes.length > 0) {
-          handleSelectResume(updatedResumes[0]);
+      
+      const res = await resumeService.getResumes();
+      if (res.success && Array.isArray(res.data)) {
+        setResumes(res.data);
+        if (res.data.length > 0) {
+          handleSelectResume(res.data[0]);
         } else {
           setSelectedResumeId(null);
           setAtsScore(null);
         }
+      } else {
+        setResumes([]);
+        setSelectedResumeId(null);
+        setAtsScore(null);
       }
-    } catch {
-      // Gracefully handle delete error
+    } catch (err: any) {
+      console.error('Delete resume error:', err);
     }
   };
 

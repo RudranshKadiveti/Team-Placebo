@@ -80,7 +80,7 @@ export const getResumeById = async (id: string, userId: string): Promise<ResumeM
 };
 
 /**
- * Delete a resume record owned by the user.
+ * Delete a resume record owned by the user (including all duplicate records matching filename).
  */
 export const deleteResumeRecord = async (id: string, userId: string) => {
   const resume = await prisma.resume.findUnique({
@@ -99,14 +99,25 @@ export const deleteResumeRecord = async (id: string, userId: string) => {
     throw error;
   }
 
-  // Delete associated vector chunks
-  await prisma.resumeChunk.deleteMany({
-    where: { resumeId: id },
+  // Find all resume records for this user matching originalFileName to clean up all duplicate entries
+  const matchingResumes = await prisma.resume.findMany({
+    where: {
+      userId,
+      originalFileName: resume.originalFileName,
+    },
+    select: { id: true },
   });
 
-  // Delete resume record
-  await prisma.resume.delete({
-    where: { id },
+  const matchingIds = matchingResumes.map(r => r.id);
+
+  // Delete associated vector chunks
+  await prisma.resumeChunk.deleteMany({
+    where: { resumeId: { in: matchingIds } },
+  });
+
+  // Delete all matching resume records
+  await prisma.resume.deleteMany({
+    where: { id: { in: matchingIds } },
   });
 
   return { message: 'Resume deleted successfully' };
