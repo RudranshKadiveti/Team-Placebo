@@ -3,6 +3,7 @@ import { getUserResumes, getResumeById, createResumeRecord } from '../services/r
 import { generateResumeEmbeddings } from '../services/resumeEmbedding.service.js';
 import { storageService } from '../services/storage.service.js';
 import { resumeIdParamSchema } from '../validators/resume.validator.js';
+import { tailorBulletSchema, analyzeRoleSchema, actionPlanSchema } from '../validators/tailoring.validator.js';
 import { CustomError } from '../middleware/errorHandler.js';
 import { prisma } from '../config/database.js';
 
@@ -161,6 +162,88 @@ export const scoreResumeController = async (req: Request, res: Response, next: N
       success: true,
       message: 'Resume ATS score calculated successfully',
       data: scoreData,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
+ * Phase 4E: Feature 1 - AI-Assisted Resume Bullet Point Rewriting Controller
+ */
+export const tailorBulletController = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const validationResult = tailorBulletSchema.safeParse(req.body);
+
+    if (!validationResult.success) {
+      const error: CustomError = new Error(validationResult.error.errors[0].message);
+      error.statusCode = 400;
+      return next(error);
+    }
+
+    const { tailorBulletPoint } = await import('../services/resumeAI/bulletTailoring.service.js');
+    const result = await tailorBulletPoint(validationResult.data);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Resume bullet point tailored successfully',
+      data: result,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
+ * Phase 4E: Feature 2 - Target Role Skill Gap Identification Controller
+ */
+export const analyzeRoleController = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const validationResult = analyzeRoleSchema.safeParse(req.body);
+
+    if (!validationResult.success) {
+      const error: CustomError = new Error(validationResult.error.errors[0].message);
+      error.statusCode = 400;
+      return next(error);
+    }
+
+    const userId = req.user!.id;
+    const { analyzeTargetRole } = await import('../services/resumeAI/roleAnalysis.service.js');
+    const result = await analyzeTargetRole({
+      ...validationResult.data,
+      userId,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Target role analyzed successfully against resume',
+      data: result,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
+ * Phase 4E: Feature 3 - Dynamic Skill Gap Action Plan Controller
+ */
+export const generateActionPlanController = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const validationResult = actionPlanSchema.safeParse(req.body);
+
+    if (!validationResult.success) {
+      const error: CustomError = new Error(validationResult.error.errors[0].message);
+      error.statusCode = 400;
+      return next(error);
+    }
+
+    const { generateSkillGapActionPlan } = await import('../services/resumeAI/actionPlan.service.js');
+    const result = await generateSkillGapActionPlan(validationResult.data);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Skill gap action plan roadmap generated successfully',
+      data: result,
     });
   } catch (error) {
     return next(error);

@@ -2,13 +2,14 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { profileService, Profile } from '../services/profileService';
 import { resumeService, ResumeMetadata, AtsScore } from '../services/resumeService';
+import { BulletTailoringModal } from '../components/BulletTailoringModal';
+import { RoleAnalysisDashboard } from '../components/RoleAnalysisDashboard';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   LogOut,
   User,
   Target,
   ArrowRight,
-  Compass,
   FileText,
   Settings,
   Edit3,
@@ -20,6 +21,8 @@ import {
   FileCheck,
   BarChart2,
   FileCode,
+  Sparkles,
+  Search,
 } from 'lucide-react';
 
 export const DashboardPage: React.FC = () => {
@@ -39,6 +42,11 @@ export const DashboardPage: React.FC = () => {
   const [atsScore, setAtsScore] = useState<AtsScore | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Phase 4E Modals & Views State
+  const [isTailorModalOpen, setIsTailorModalOpen] = useState(false);
+  const [selectedBulletToTailor, setSelectedBulletToTailor] = useState('');
+  const [activeTab, setActiveTab] = useState<'ats' | 'role_analysis'>('ats');
+
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
@@ -55,7 +63,6 @@ export const DashboardPage: React.FC = () => {
           if (latestResume.atsScore) {
             setAtsScore(latestResume.atsScore);
           } else {
-            // Auto calculate ATS score for latest resume
             try {
               const scoreRes = await resumeService.scoreResume(latestResume.id);
               if (scoreRes.success && scoreRes.data) {
@@ -161,7 +168,6 @@ export const DashboardPage: React.FC = () => {
     }
   };
 
-  // Quick Action Navigation
   const handleQuickAction = (actionName: string, path: string) => {
     console.log(`[QuickAction] Triggered action: ${actionName} -> redirecting to ${path}`);
     navigate(path);
@@ -175,7 +181,7 @@ export const DashboardPage: React.FC = () => {
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-600/10 rounded-full blur-[140px] pointer-events-none" />
       <div className="absolute bottom-10 right-10 w-[400px] h-[400px] bg-indigo-600/10 rounded-full blur-[120px] pointer-events-none" />
 
-      <main className="w-full max-w-2xl bg-slate-900/80 border border-slate-800 backdrop-blur-xl rounded-3xl p-6 md:p-10 shadow-2xl relative z-10 space-y-8">
+      <main className="w-full max-w-3xl bg-slate-900/80 border border-slate-800 backdrop-blur-xl rounded-3xl p-6 md:p-10 shadow-2xl relative z-10 space-y-8">
         {/* Top Header Row with Status Badge & Sign Out */}
         <div className="flex items-center justify-between border-b border-slate-800/80 pb-4">
           <div className="flex items-center gap-2">
@@ -249,34 +255,60 @@ export const DashboardPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Action Modules Banner & Buttons */}
+        {/* Action Modules Banner & Phase 4E Buttons */}
         <section className="p-5 rounded-2xl bg-gradient-to-br from-slate-800/60 to-slate-900/60 border border-slate-700/60 space-y-4 shadow-inner">
-          <div className="flex items-center gap-2 text-sm font-semibold text-slate-200">
-            <Zap className="w-4 h-4 text-amber-400" />
-            <span>Profile optimized! Ready to explore?</span>
-          </div>
-
-          <div className="flex flex-wrap gap-3">
-            <Link
-              to="/profile"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold transition-all shadow-lg shadow-blue-600/20 active:scale-95"
-            >
-              Manage Profile & Goals <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm font-semibold text-slate-200">
+              <Zap className="w-4 h-4 text-amber-400" />
+              <span>AI Resume Intelligence & Bullet Point Optimization</span>
+            </div>
             <button
-              onClick={() => handleQuickAction('Explore Roles', '/profile')}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-slate-200 text-xs font-semibold transition-all hover:border-slate-600 active:scale-95"
+              onClick={() => {
+                setSelectedBulletToTailor('Worked on a web application using React and Node.js.');
+                setIsTailorModalOpen(true);
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white text-xs font-semibold shadow-md transition-all active:scale-95"
             >
-              <Compass className="w-3.5 h-3.5 text-indigo-400" /> Explore Roles
+              <Sparkles className="w-3.5 h-3.5" /> AI Bullet Tailor
             </button>
           </div>
 
-          {/* 2x2 Quick Action Grid */}
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={() => setActiveTab('ats')}
+              className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                activeTab === 'ats'
+                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
+                  : 'bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 border border-slate-700'
+              }`}
+            >
+              <BarChart2 className="w-3.5 h-3.5" /> ATS Score & Metrics
+            </button>
+
+            <button
+              onClick={() => setActiveTab('role_analysis')}
+              className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                activeTab === 'role_analysis'
+                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
+                  : 'bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 border border-slate-700'
+              }`}
+            >
+              <Search className="w-3.5 h-3.5 text-indigo-400" /> Target Role Analysis & Action Plan
+            </button>
+
+            <Link
+              to="/profile"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-slate-200 text-xs font-semibold transition-all"
+            >
+              Manage Profile <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+
+          {/* Quick Action Grid */}
           <div className="grid grid-cols-2 gap-3 pt-2">
             <button
               onClick={() => handleQuickAction('Edit Bio', '/profile#bio')}
-              className="flex items-center gap-3 p-3 rounded-xl bg-slate-800/40 hover:bg-slate-800/80 border border-slate-700/40 text-left text-slate-300 hover:text-white hover:border-blue-500/30 transition-all group"
+              className="flex items-center gap-3 p-3 rounded-xl bg-slate-800/40 hover:bg-slate-800/80 border border-slate-700/40 text-left text-slate-300 hover:text-white transition-all group"
             >
               <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400 group-hover:bg-blue-500/20">
                 <Edit3 className="w-4 h-4" />
@@ -286,7 +318,7 @@ export const DashboardPage: React.FC = () => {
 
             <button
               onClick={() => handleQuickAction('Update Skills', '/profile#skills')}
-              className="flex items-center gap-3 p-3 rounded-xl bg-slate-800/40 hover:bg-slate-800/80 border border-slate-700/40 text-left text-slate-300 hover:text-white hover:border-indigo-500/30 transition-all group"
+              className="flex items-center gap-3 p-3 rounded-xl bg-slate-800/40 hover:bg-slate-800/80 border border-slate-700/40 text-left text-slate-300 hover:text-white transition-all group"
             >
               <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-400 group-hover:bg-indigo-500/20">
                 <Award className="w-4 h-4" />
@@ -296,7 +328,7 @@ export const DashboardPage: React.FC = () => {
 
             <button
               onClick={() => handleQuickAction('View Resume', '/profile#resume')}
-              className="flex items-center gap-3 p-3 rounded-xl bg-slate-800/40 hover:bg-slate-800/80 border border-slate-700/40 text-left text-slate-300 hover:text-white hover:border-emerald-500/30 transition-all group"
+              className="flex items-center gap-3 p-3 rounded-xl bg-slate-800/40 hover:bg-slate-800/80 border border-slate-700/40 text-left text-slate-300 hover:text-white transition-all group"
             >
               <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 group-hover:bg-emerald-500/20">
                 <FileText className="w-4 h-4" />
@@ -306,7 +338,7 @@ export const DashboardPage: React.FC = () => {
 
             <button
               onClick={() => handleQuickAction('Settings', '/profile#settings')}
-              className="flex items-center gap-3 p-3 rounded-xl bg-slate-800/40 hover:bg-slate-800/80 border border-slate-700/40 text-left text-slate-300 hover:text-white hover:border-slate-500/30 transition-all group"
+              className="flex items-center gap-3 p-3 rounded-xl bg-slate-800/40 hover:bg-slate-800/80 border border-slate-700/40 text-left text-slate-300 hover:text-white transition-all group"
             >
               <div className="p-2 rounded-lg bg-slate-700/40 text-slate-300 group-hover:bg-slate-700">
                 <Settings className="w-4 h-4" />
@@ -354,16 +386,27 @@ export const DashboardPage: React.FC = () => {
                       </div>
                     </div>
 
-                    <button
-                      onClick={() => handleSelectResume(r)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                        isSelected
-                          ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30 cursor-default'
-                          : 'bg-slate-800 hover:bg-blue-600/20 text-slate-300 hover:text-blue-400 border border-slate-700 hover:border-blue-500/30'
-                      }`}
-                    >
-                      {isSelected ? '✓ Active / Selected' : 'Select to Analyze'}
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          setSelectedBulletToTailor('Developed key application features.');
+                          setIsTailorModalOpen(true);
+                        }}
+                        className="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/30 flex items-center gap-1 transition-all"
+                      >
+                        <Sparkles className="w-3 h-3" /> Tailor Bullets
+                      </button>
+                      <button
+                        onClick={() => handleSelectResume(r)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                          isSelected
+                            ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30 cursor-default'
+                            : 'bg-slate-800 hover:bg-blue-600/20 text-slate-300 hover:text-blue-400 border border-slate-700 hover:border-blue-500/30'
+                        }`}
+                      >
+                        {isSelected ? '✓ Active' : 'Select'}
+                      </button>
+                    </div>
                   </div>
                 );
               })}
@@ -371,187 +414,140 @@ export const DashboardPage: React.FC = () => {
           )}
         </section>
 
-        {/* Wider Resume ATS Performance & Upload Section */}
-        <section className="p-6 rounded-2xl bg-slate-800/30 border border-slate-800 hover:border-slate-700/60 hover:-translate-y-1 transition-all duration-300 space-y-6">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-            <div className="flex items-center gap-2">
-              <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400">
-                <BarChart2 className="w-5 h-5" />
+        {/* TAB 1: ATS SCORE & METRICS */}
+        {activeTab === 'ats' && (
+          <section className="p-6 rounded-2xl bg-slate-800/30 border border-slate-800 space-y-6 animate-in fade-in duration-200">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400">
+                  <BarChart2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-100">Resume ATS Performance</h3>
+                  <p className="text-xs text-slate-400">Real-life Applicant Tracking System analytics</p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-base font-bold text-slate-100">Resume ATS Performance</h3>
-                <p className="text-xs text-slate-400">Real-life Applicant Tracking System analytics</p>
+              {activeResumeObj && (
+                <span className="text-[11px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full flex items-center gap-1">
+                  <FileCheck className="w-3.5 h-3.5" /> {resumeFile ? resumeFile.name : activeResumeObj.originalFileName}
+                </span>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
+              {/* ATS Score Circular Progress Indicator */}
+              <div className="flex flex-col items-center justify-center p-4 rounded-xl bg-slate-900/60 border border-slate-800 text-center">
+                <div className="relative w-24 h-24 flex items-center justify-center mb-2">
+                  <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                    <path
+                      className="text-slate-800"
+                      strokeWidth="3"
+                      stroke="currentColor"
+                      fill="none"
+                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                    />
+                    <path
+                      className="text-emerald-400 transition-all duration-1000"
+                      strokeDasharray={`${atsScore?.overallScore || 0}, 100`}
+                      strokeWidth="3.5"
+                      strokeLinecap="round"
+                      stroke="currentColor"
+                      fill="none"
+                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                    />
+                  </svg>
+                  <div className="absolute flex flex-col items-center">
+                    <span className="text-xl font-black text-emerald-400">
+                      {uploading ? '...' : `${atsScore?.overallScore || 0}%`}
+                    </span>
+                    <span className="text-[9px] text-slate-400 uppercase font-semibold">ATS Score</span>
+                  </div>
+                </div>
+                <span className="text-xs font-semibold text-slate-300">
+                  {uploading ? 'Analyzing Resume...' : (atsScore?.overallScore || 0) >= 80 ? 'Optimal Match' : (atsScore?.overallScore || 0) > 0 ? 'Good Match' : 'Upload Resume to Score'}
+                </span>
+              </div>
+
+              {/* Sub-Metrics Breakdown */}
+              <div className="space-y-3 md:col-span-2">
+                <div className="p-3 rounded-xl bg-slate-900/40 border border-slate-800 flex items-center justify-between">
+                  <span className="text-xs font-medium text-slate-300">Semantic Context Match</span>
+                  <span className="text-xs font-bold text-slate-100 bg-slate-800 px-2.5 py-1 rounded-md">
+                    {atsScore?.semanticMatch?.similarityPercent || 0}% match
+                  </span>
+                </div>
+
+                <div className="p-3 rounded-xl bg-slate-900/40 border border-slate-800 flex items-center justify-between">
+                  <span className="text-xs font-medium text-slate-300">Formatting Check</span>
+                  <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-md border ${atsScore?.formattingCheck?.passed ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-amber-400 bg-amber-500/10 border-amber-500/20'}`}>
+                    {atsScore?.formattingCheck?.passed ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />} 
+                    {atsScore?.formattingCheck?.passed ? 'Passed' : 'Needs Work'}
+                  </span>
+                </div>
+
+                <div className="p-3 rounded-xl bg-slate-900/40 border border-slate-800 flex items-center justify-between">
+                  <span className="text-xs font-medium text-slate-300">Impact Readability</span>
+                  <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-md border ${atsScore?.readability?.status === 'Optimal' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : atsScore?.readability?.status === 'Poor' ? 'text-red-400 bg-red-500/10 border-red-500/20' : 'text-amber-400 bg-amber-500/10 border-amber-500/20'}`}>
+                    {atsScore?.readability?.status === 'Optimal' ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />} 
+                    {atsScore?.readability?.status || 'Pending'}
+                  </span>
+                </div>
               </div>
             </div>
-            {activeResumeObj && (
-              <span className="text-[11px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full flex items-center gap-1">
-                <FileCheck className="w-3.5 h-3.5" /> {resumeFile ? resumeFile.name : activeResumeObj.originalFileName}
-              </span>
+
+            {/* Drag-and-Drop Resume Upload Zone */}
+            <div
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onClick={() => fileInputRef.current?.click()}
+              className={`border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-all duration-200 ${
+                isDragging
+                  ? 'border-blue-500 bg-blue-500/10'
+                  : 'border-slate-700/80 hover:border-blue-500/50 bg-slate-900/40 hover:bg-slate-900/80'
+              }`}
+            >
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                accept=".pdf,.doc,.docx"
+                className="hidden"
+              />
+              <div className="flex flex-col items-center justify-center gap-2">
+                <div className="p-3 rounded-full bg-blue-500/10 text-blue-400">
+                  <UploadCloud className="w-6 h-6" />
+                </div>
+                <p className="text-xs font-semibold text-slate-200">
+                  {uploading ? 'Processing resume PDF & calculating ATS score...' : 'Click to upload or drag & drop new resume'}
+                </p>
+                <p className="text-[11px] text-slate-500">Supports PDF, DOC, DOCX (Max 10MB)</p>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* TAB 2: PHASE 4E TARGET ROLE ANALYSIS & ACTION PLAN */}
+        {activeTab === 'role_analysis' && (
+          <div className="animate-in fade-in duration-200">
+            {activeResumeObj ? (
+              <RoleAnalysisDashboard resumeId={activeResumeObj.id} />
+            ) : (
+              <div className="p-8 text-center text-xs text-slate-400 bg-slate-900/60 rounded-2xl border border-slate-800">
+                Please upload a PDF resume first to enable Target Role Analysis.
+              </div>
             )}
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
-            {/* ATS Score Circular Progress Indicator */}
-            <div className="flex flex-col items-center justify-center p-4 rounded-xl bg-slate-900/60 border border-slate-800 text-center">
-              <div className="relative w-24 h-24 flex items-center justify-center mb-2">
-                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-                  <path
-                    className="text-slate-800"
-                    strokeWidth="3"
-                    stroke="currentColor"
-                    fill="none"
-                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                  />
-                  <path
-                    className="text-emerald-400 transition-all duration-1000"
-                    strokeDasharray={`${atsScore?.overallScore || 0}, 100`}
-                    strokeWidth="3.5"
-                    strokeLinecap="round"
-                    stroke="currentColor"
-                    fill="none"
-                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                  />
-                </svg>
-                <div className="absolute flex flex-col items-center">
-                  <span className="text-xl font-black text-emerald-400">
-                    {uploading ? '...' : `${atsScore?.overallScore || 0}%`}
-                  </span>
-                  <span className="text-[9px] text-slate-400 uppercase font-semibold">ATS Score</span>
-                </div>
-              </div>
-              <span className="text-xs font-semibold text-slate-300">
-                {uploading ? 'Analyzing Resume...' : (atsScore?.overallScore || 0) >= 80 ? 'Optimal Match' : (atsScore?.overallScore || 0) > 0 ? 'Good Match' : 'Upload Resume to Score'}
-              </span>
-            </div>
-
-            {/* Sub-Metrics Breakdown */}
-            <div className="space-y-3 md:col-span-2">
-              <div className="p-3 rounded-xl bg-slate-900/40 border border-slate-800 flex items-center justify-between">
-                <span className="text-xs font-medium text-slate-300">Semantic Context Match</span>
-                <span className="text-xs font-bold text-slate-100 bg-slate-800 px-2.5 py-1 rounded-md">
-                  {atsScore?.semanticMatch?.similarityPercent || 0}% match
-                </span>
-              </div>
-
-              <div className="p-3 rounded-xl bg-slate-900/40 border border-slate-800 flex items-center justify-between">
-                <span className="text-xs font-medium text-slate-300">Formatting Check</span>
-                <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-md border ${atsScore?.formattingCheck?.passed ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-amber-400 bg-amber-500/10 border-amber-500/20'}`}>
-                  {atsScore?.formattingCheck?.passed ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />} 
-                  {atsScore?.formattingCheck?.passed ? 'Passed' : 'Needs Work'}
-                </span>
-              </div>
-
-              <div className="p-3 rounded-xl bg-slate-900/40 border border-slate-800 flex items-center justify-between">
-                <span className="text-xs font-medium text-slate-300">Impact Readability</span>
-                <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-md border ${atsScore?.readability?.status === 'Optimal' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : atsScore?.readability?.status === 'Poor' ? 'text-red-400 bg-red-500/10 border-red-500/20' : 'text-amber-400 bg-amber-500/10 border-amber-500/20'}`}>
-                  {atsScore?.readability?.status === 'Optimal' ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />} 
-                  {atsScore?.readability?.status || 'Pending'}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* ATS Score Point Breakdown Accordion */}
-          {atsScore?.pointBreakdown && (
-            <div className="mt-4 space-y-2">
-              <details className="group rounded-xl bg-slate-900/40 border border-slate-800 open:bg-slate-900/60 transition-colors">
-                <summary className="flex items-center justify-between p-4 cursor-pointer select-none">
-                  <div className="flex flex-col">
-                    <span className="text-[10px] uppercase text-slate-400 font-bold">Section Points</span>
-                    <span className="text-sm font-medium text-slate-300">Has all required sections?</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-lg font-black text-slate-200">{atsScore.pointBreakdown.sectionPoints} <span className="text-xs text-slate-500 font-medium">/ 30</span></span>
-                    <span className="text-slate-400 group-open:rotate-180 transition-transform">▼</span>
-                  </div>
-                </summary>
-                <div className="px-4 pb-4 pt-1 text-xs text-slate-400 border-t border-slate-800/50 mt-2">
-                  {atsScore.sectionCompleteness.missingSections.length > 0 ? (
-                    <span className="text-red-400 font-medium">Lost {atsScore.pointBreakdown.lostSectionPoints} pts. Missing: {atsScore.sectionCompleteness.missingSections.join(', ')}</span>
-                  ) : (
-                    <span className="text-emerald-400 font-medium">Perfect! All core sections found.</span>
-                  )}
-                </div>
-              </details>
-
-              <details className="group rounded-xl bg-slate-900/40 border border-slate-800 open:bg-slate-900/60 transition-colors">
-                <summary className="flex items-center justify-between p-4 cursor-pointer select-none">
-                  <div className="flex flex-col">
-                    <span className="text-[10px] uppercase text-slate-400 font-bold">Formatting Points</span>
-                    <span className="text-sm font-medium text-slate-300">Length & readability check</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-lg font-black text-slate-200">{atsScore.pointBreakdown.formattingPoints} <span className="text-xs text-slate-500 font-medium">/ 30</span></span>
-                    <span className="text-slate-400 group-open:rotate-180 transition-transform">▼</span>
-                  </div>
-                </summary>
-                <div className="px-4 pb-4 pt-1 text-xs text-slate-400 border-t border-slate-800/50 mt-2">
-                  {atsScore.formattingCheck.issues.length > 0 ? (
-                    <div className="text-red-400 font-medium">
-                      Lost {atsScore.pointBreakdown.lostFormattingPoints} pts. Issues: 
-                      <ul className="list-disc pl-4 mt-1 space-y-1">
-                        {atsScore.formattingCheck.issues.map((i, idx) => <li key={idx}>{i}</li>)}
-                      </ul>
-                    </div>
-                  ) : (
-                    <span className="text-emerald-400 font-medium">Perfect! Formatting looks great.</span>
-                  )}
-                </div>
-              </details>
-
-              <details className="group rounded-xl bg-slate-900/40 border border-slate-800 open:bg-slate-900/60 transition-colors">
-                <summary className="flex items-center justify-between p-4 cursor-pointer select-none">
-                  <div className="flex flex-col">
-                    <span className="text-[10px] uppercase text-slate-400 font-bold">Semantic Match</span>
-                    <span className="text-sm font-medium text-slate-300">Contextual skill overlap</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-lg font-black text-slate-200">{atsScore.pointBreakdown.keywordPoints} <span className="text-xs text-slate-500 font-medium">/ 40</span></span>
-                    <span className="text-slate-400 group-open:rotate-180 transition-transform">▼</span>
-                  </div>
-                </summary>
-                <div className="px-4 pb-4 pt-1 text-xs text-slate-400 border-t border-slate-800/50 mt-2">
-                  {atsScore.pointBreakdown.lostKeywordPoints > 0 ? (
-                    <span className="text-amber-400 font-medium">Lost {atsScore.pointBreakdown.lostKeywordPoints} pts. Your resume has a {atsScore.semanticMatch.similarityPercent}% contextual similarity to the ideal profile.</span>
-                  ) : (
-                    <span className="text-emerald-400 font-medium">Excellent semantic match!</span>
-                  )}
-                </div>
-              </details>
-            </div>
-          )}
-
-          {/* Styled Drag-and-Drop Resume Upload Zone */}
-          <div
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            onClick={() => fileInputRef.current?.click()}
-            className={`border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-all duration-200 ${
-              isDragging
-                ? 'border-blue-500 bg-blue-500/10'
-                : 'border-slate-700/80 hover:border-blue-500/50 bg-slate-900/40 hover:bg-slate-900/80'
-            }`}
-          >
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileChange}
-              accept=".pdf,.doc,.docx"
-              className="hidden"
-            />
-            <div className="flex flex-col items-center justify-center gap-2">
-              <div className="p-3 rounded-full bg-blue-500/10 text-blue-400">
-                <UploadCloud className="w-6 h-6" />
-              </div>
-              <p className="text-xs font-semibold text-slate-200">
-                {uploading ? 'Processing resume PDF & calculating ATS score...' : 'Click to upload or drag & drop new resume'}
-              </p>
-              <p className="text-[11px] text-slate-500">Supports PDF, DOC, DOCX (Max 10MB)</p>
-            </div>
-          </div>
-        </section>
+        )}
       </main>
+
+      {/* PHASE 4E FEATURE 1: AI BULLET TAILORING MODAL */}
+      <BulletTailoringModal
+        isOpen={isTailorModalOpen}
+        onClose={() => setIsTailorModalOpen(false)}
+        initialBullet={selectedBulletToTailor}
+        targetRoleTitle={primaryGoal !== 'Not set yet' ? primaryGoal : ''}
+      />
     </div>
   );
 };
