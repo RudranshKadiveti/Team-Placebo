@@ -28,7 +28,7 @@ const parseAtsScoreField = (atsScore: any) => {
 };
 
 /**
- * Retrieve all resume metadata records for the authenticated user.
+ * Retrieve all unique resume metadata records for the authenticated user (deduplicated by originalFileName).
  */
 export const getUserResumes = async (userId: string): Promise<ResumeMetadata[]> => {
   const resumes = await prisma.resume.findMany({
@@ -36,7 +36,17 @@ export const getUserResumes = async (userId: string): Promise<ResumeMetadata[]> 
     orderBy: { uploadedAt: 'desc' },
   });
 
-  return resumes.map(r => ({
+  // Deduplicate by originalFileName (keep latest uploaded version)
+  const uniqueMap = new Map<string, typeof resumes[0]>();
+  for (const r of resumes) {
+    if (!uniqueMap.has(r.originalFileName)) {
+      uniqueMap.set(r.originalFileName, r);
+    }
+  }
+
+  const deduplicated = Array.from(uniqueMap.values());
+
+  return deduplicated.map(r => ({
     ...r,
     atsScore: parseAtsScoreField(r.atsScore)
   }));

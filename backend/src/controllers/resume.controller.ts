@@ -4,6 +4,7 @@ import { generateResumeEmbeddings } from '../services/resumeEmbedding.service.js
 import { storageService } from '../services/storage.service.js';
 import { resumeIdParamSchema } from '../validators/resume.validator.js';
 import { CustomError } from '../middleware/errorHandler.js';
+import { prisma } from '../config/database.js';
 
 export const getResumes = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -49,15 +50,41 @@ export const uploadResumeController = async (req: Request, res: Response, next: 
     }
 
     const userId = req.user!.id;
+    
+    // Check for duplicate resume by filename for the same user
+    const existing = await prisma.resume.findFirst({
+      where: {
+        userId,
+        originalFileName: req.file.originalname,
+      },
+    });
+
     const storageResult = await storageService.saveFile(req.file, 'resumes');
 
-    const resumeRecord = await createResumeRecord({
-      userId,
-      originalFileName: req.file.originalname,
-      fileType: req.file.mimetype || 'application/octet-stream',
-      fileSize: req.file.size,
-      storageKey: storageResult.storageKey,
-    });
+    let resumeRecord;
+    if (existing) {
+      // Overwrite/Update existing duplicate record with fresh file details
+      resumeRecord = await prisma.resume.update({
+        where: { id: existing.id },
+        data: {
+          fileSize: req.file.size,
+          fileType: req.file.mimetype || 'application/octet-stream',
+          storageKey: storageResult.storageKey,
+          rawText: null,
+          structuredContent: null,
+          atsScore: null,
+          uploadedAt: new Date(),
+        },
+      });
+    } else {
+      resumeRecord = await createResumeRecord({
+        userId,
+        originalFileName: req.file.originalname,
+        fileType: req.file.mimetype || 'application/octet-stream',
+        fileSize: req.file.size,
+        storageKey: storageResult.storageKey,
+      });
+    }
 
     return res.status(201).json({
       success: true,
@@ -139,4 +166,3 @@ export const scoreResumeController = async (req: Request, res: Response, next: N
     return next(error);
   }
 };
-

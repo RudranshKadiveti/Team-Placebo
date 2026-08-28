@@ -28,6 +28,7 @@ export const DashboardPage: React.FC = () => {
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [resumes, setResumes] = useState<ResumeMetadata[]>([]);
+  const [selectedResumeId, setSelectedResumeId] = useState<string | null>(null);
   const [completionPercentage, setCompletionPercentage] = useState<number>(0);
   const [loading, setLoading] = useState(true);
 
@@ -50,6 +51,7 @@ export const DashboardPage: React.FC = () => {
         if (resumeData.success && Array.isArray(resumeData.data) && resumeData.data.length > 0) {
           setResumes(resumeData.data);
           const latestResume = resumeData.data[0];
+          setSelectedResumeId(latestResume.id);
           if (latestResume.atsScore) {
             setAtsScore(latestResume.atsScore);
           } else {
@@ -60,7 +62,7 @@ export const DashboardPage: React.FC = () => {
                 setAtsScore(scoreRes.data);
               }
             } catch {
-              // Gracefully handle scoring error
+              // Fallback gracefully
             }
           }
         }
@@ -92,6 +94,26 @@ export const DashboardPage: React.FC = () => {
       ? profile.careerGoals[0].targetRole
       : 'Not set yet';
 
+  // Resume Selection Handler
+  const handleSelectResume = async (resume: ResumeMetadata) => {
+    setSelectedResumeId(resume.id);
+    if (resume.atsScore) {
+      setAtsScore(resume.atsScore);
+    } else {
+      setUploading(true);
+      try {
+        const scoreRes = await resumeService.scoreResume(resume.id);
+        if (scoreRes.success && scoreRes.data) {
+          setAtsScore(scoreRes.data);
+        }
+      } catch {
+        // Fallback gracefully
+      } finally {
+        setUploading(false);
+      }
+    }
+  };
+
   // Resume Upload Handler
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -121,8 +143,11 @@ export const DashboardPage: React.FC = () => {
     setUploading(true);
     try {
       const uploadRes = await resumeService.uploadResume(file);
-      await resumeService.parseResume(uploadRes.data.id);
-      const scoreRes = await resumeService.scoreResume(uploadRes.data.id);
+      const newResumeId = uploadRes.data.id;
+      setSelectedResumeId(newResumeId);
+
+      await resumeService.parseResume(newResumeId);
+      const scoreRes = await resumeService.scoreResume(newResumeId);
       setAtsScore(scoreRes.data);
       
       const res = await resumeService.getResumes();
@@ -141,6 +166,8 @@ export const DashboardPage: React.FC = () => {
     console.log(`[QuickAction] Triggered action: ${actionName} -> redirecting to ${path}`);
     navigate(path);
   };
+
+  const activeResumeObj = resumes.find(r => r.id === selectedResumeId) || resumes[0];
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center p-6 md:p-12 relative overflow-hidden">
@@ -289,24 +316,57 @@ export const DashboardPage: React.FC = () => {
           </div>
         </section>
 
-        {/* Resume Intelligence Foundation Section */}
+        {/* Resume Intelligence Section with Interactive Selection */}
         <section className="p-6 rounded-2xl bg-slate-800/30 border border-slate-800 space-y-4">
-          <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
-            <FileCode className="w-5 h-5 text-blue-400" />
-            <h3 className="text-base font-bold text-slate-100">Resume Intelligence</h3>
+          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div className="flex items-center gap-2">
+              <FileCode className="w-5 h-5 text-blue-400" />
+              <h3 className="text-base font-bold text-slate-100">Resume Intelligence</h3>
+            </div>
+            <span className="text-xs text-slate-400 font-medium">
+              {resumes.length} {resumes.length === 1 ? 'Resume' : 'Resumes'} Available
+            </span>
           </div>
           {resumes.length === 0 ? (
             <p className="text-xs text-slate-400 font-medium italic">
               No resume uploaded yet. Upload a PDF resume below to view your ATS score!
             </p>
           ) : (
-            <div className="space-y-2">
-              {resumes.map((r) => (
-                <div key={r.id} className="flex items-center justify-between text-xs text-slate-300 p-2.5 bg-slate-900/60 rounded-xl border border-slate-800">
-                  <span className="font-semibold text-slate-200">{r.originalFileName}</span>
-                  <span className="text-[11px] text-slate-500">{new Date(r.uploadedAt).toLocaleDateString()}</span>
-                </div>
-              ))}
+            <div className="space-y-2.5">
+              {resumes.map((r) => {
+                const isSelected = selectedResumeId === r.id || (!selectedResumeId && resumes[0].id === r.id);
+                return (
+                  <div
+                    key={r.id}
+                    className={`flex items-center justify-between text-xs p-3 rounded-xl border transition-all ${
+                      isSelected
+                        ? 'bg-blue-500/10 border-blue-500/40 text-blue-200 shadow-md shadow-blue-500/5'
+                        : 'bg-slate-900/60 hover:bg-slate-900 border-slate-800 text-slate-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-lg ${isSelected ? 'bg-blue-500/20 text-blue-400' : 'bg-slate-800 text-slate-400'}`}>
+                        <FileText className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="font-semibold block text-slate-200 text-sm">{r.originalFileName}</span>
+                        <span className="text-[11px] text-slate-500">Uploaded on {new Date(r.uploadedAt).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => handleSelectResume(r)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                        isSelected
+                          ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30 cursor-default'
+                          : 'bg-slate-800 hover:bg-blue-600/20 text-slate-300 hover:text-blue-400 border border-slate-700 hover:border-blue-500/30'
+                      }`}
+                    >
+                      {isSelected ? '✓ Active / Selected' : 'Select to Analyze'}
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           )}
         </section>
@@ -323,9 +383,9 @@ export const DashboardPage: React.FC = () => {
                 <p className="text-xs text-slate-400">Real-life Applicant Tracking System analytics</p>
               </div>
             </div>
-            {(resumeFile || resumes.length > 0) && (
+            {activeResumeObj && (
               <span className="text-[11px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full flex items-center gap-1">
-                <FileCheck className="w-3.5 h-3.5" /> {resumeFile ? resumeFile.name : resumes[0].originalFileName}
+                <FileCheck className="w-3.5 h-3.5" /> {resumeFile ? resumeFile.name : activeResumeObj.originalFileName}
               </span>
             )}
           </div>
