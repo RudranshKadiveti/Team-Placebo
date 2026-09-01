@@ -117,47 +117,50 @@ export const GitHubPortfolioDashboard: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="p-8 text-center bg-slate-900/60 border border-slate-800 rounded-3xl text-slate-400 text-xs">
-        <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2 text-blue-400" />
+      <div className="p-8 text-center bg-white border border-slate-200 rounded-2xl shadow-sm text-slate-500 text-xs font-medium">
+        <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2 text-emerald-500" />
         Analyzing GitHub repositories & extracting engineering evidence...
       </div>
     );
   }
 
+  // Calculate languages for the orbital graph
+  const uniqueLanguages = portfolioData 
+    ? Array.from(new Set(portfolioData.topRepositories.map(r => r.primaryLanguage).filter(Boolean))).slice(0, 8)
+    : [];
+
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Messages */}
       {error && (
-        <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 shrink-0" />
-            <span>{error}</span>
-          </div>
+        <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-600 text-xs font-semibold flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 shrink-0" />
+          <span>{error}</span>
         </div>
       )}
       {successMsg && (
-        <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+        <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-600 text-xs font-semibold flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 shrink-0" />
           <span>{successMsg}</span>
         </div>
       )}
 
       {/* CONNECT FORM / STATUS HEADER */}
-      <section className="p-6 rounded-3xl bg-slate-900/80 border border-slate-800 backdrop-blur-xl shadow-xl flex flex-col md:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="p-3 rounded-2xl bg-slate-800 text-slate-200 border border-slate-700">
+      <section className="p-6 md:p-8 rounded-3xl bg-white border border-slate-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="p-3.5 rounded-2xl bg-slate-900 text-white shadow-md">
             <Github className="w-6 h-6" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-base font-bold text-white">GitHub Portfolio Intelligence</h3>
+              <h3 className="text-lg font-bold text-slate-800">GitHub Portfolio Intelligence</h3>
               {status?.connected && (
-                <span className="text-[10px] uppercase font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                <span className="text-[10px] uppercase font-black text-emerald-600 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-md tracking-wide">
                   Connected: @{status.username}
                 </span>
               )}
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-slate-500 mt-1 font-medium">
               {status?.connected
                 ? `Synchronized ${status.repoCount || 0} repositories (Last synced: ${status.lastSyncedAt ? new Date(status.lastSyncedAt).toLocaleTimeString() : 'Just now'})`
                 : 'Connect your GitHub account to generate data-driven portfolio analytics & evidence.'}
@@ -170,15 +173,15 @@ export const GitHubPortfolioDashboard: React.FC = () => {
             <button
               onClick={handleSync}
               disabled={syncing}
-              className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold flex items-center gap-1.5 transition-all shadow-md shadow-blue-600/20 disabled:opacity-50"
+              className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold flex items-center gap-2 transition-all shadow-md shadow-slate-900/20 disabled:opacity-50"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />
-              {syncing ? 'Syncing...' : 'Sync GitHub'}
+              {syncing ? 'Syncing...' : 'Sync Data'}
             </button>
             <button
               onClick={handleDisconnect}
               title="Disconnect GitHub account"
-              className="p-2 rounded-xl bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-slate-700 hover:border-rose-500/30 transition-all"
+              className="p-2.5 rounded-xl bg-white border border-slate-200 hover:bg-rose-50 text-slate-400 hover:text-rose-500 hover:border-rose-200 transition-all shadow-sm"
             >
               <Unlink className="w-4 h-4" />
             </button>
@@ -189,23 +192,23 @@ export const GitHubPortfolioDashboard: React.FC = () => {
               type="text"
               value={usernameInput}
               onChange={(e) => setUsernameInput(e.target.value)}
-              placeholder="GitHub Username (e.g. suraj14611)"
+              placeholder="GitHub Username"
               required
-              className="bg-slate-950 border border-slate-800 focus:border-blue-500 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder-slate-500 outline-none w-full sm:w-44"
+              className="bg-slate-50 border border-slate-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-50 rounded-xl px-4 py-2.5 text-xs text-slate-700 font-medium outline-none w-full sm:w-48 transition-all"
             />
             <input
               type="password"
               value={tokenInput}
               onChange={(e) => setTokenInput(e.target.value)}
-              placeholder="GitHub PAT (Optional - Bypasses Rate Limits)"
-              className="bg-slate-950 border border-slate-800 focus:border-blue-500 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder-slate-500 outline-none w-full sm:w-56"
+              placeholder="GitHub PAT (Optional)"
+              className="bg-slate-50 border border-slate-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-50 rounded-xl px-4 py-2.5 text-xs text-slate-700 font-medium outline-none w-full sm:w-48 transition-all"
             />
             <button
               type="submit"
               disabled={syncing}
-              className="w-full sm:w-auto px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-all shadow-md shadow-blue-600/20 shrink-0"
+              className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-md shadow-slate-900/20 shrink-0"
             >
-              <Github className="w-3.5 h-3.5" />
+              <Github className="w-4 h-4" />
               {syncing ? 'Connecting...' : 'Connect'}
             </button>
           </form>
@@ -215,142 +218,171 @@ export const GitHubPortfolioDashboard: React.FC = () => {
       {/* DASHBOARD CONTENT (WHEN CONNECTED) */}
       {status?.connected && portfolioData && (
         <div className="space-y-6">
-          {/* TOP METRIC ROW: PORTFOLIO STRENGTH SCORE */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
-            <div className="p-6 rounded-3xl bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-800 text-center flex flex-col items-center justify-center relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl pointer-events-none" />
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">
-                GitHub Portfolio Strength Score
-              </span>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            {/* LEFT: Orbital Graph (Light Theme adaptation of Image 2) */}
+            <section className="p-8 rounded-3xl bg-white border border-slate-200 shadow-sm flex flex-col items-center justify-center relative min-h-[400px] overflow-hidden">
+              <h3 className="absolute top-6 left-6 text-sm font-bold text-slate-800">Tech Stack Constellation</h3>
+              
+              {/* Background Orbits */}
+              <div className="absolute w-64 h-64 border border-slate-100 rounded-full"></div>
+              <div className="absolute w-96 h-96 border border-slate-100 rounded-full border-dashed"></div>
+              
+              {/* Central Node */}
+              <div className="relative w-20 h-20 bg-emerald-500 rounded-full shadow-[0_0_30px_rgba(16,185,129,0.4)] flex items-center justify-center text-white font-black text-xl z-10 border-4 border-white">
+                ME
+              </div>
 
-              <div className="relative w-28 h-28 flex items-center justify-center mb-3">
-                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-                  <path
-                    className="text-slate-800"
-                    strokeWidth="3.5"
-                    stroke="currentColor"
-                    fill="none"
-                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                  />
-                  <path
-                    className="text-blue-400 transition-all duration-1000"
-                    strokeDasharray={`${portfolioData.portfolio.portfolioStrengthScore}, 100`}
-                    strokeWidth="3.8"
-                    strokeLinecap="round"
-                    stroke="currentColor"
-                    fill="none"
-                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                  />
-                </svg>
-                <div className="absolute flex flex-col items-center">
-                  <span className="text-2xl font-black text-white">
-                    {portfolioData.portfolio.portfolioStrengthScore}
+              {/* Orbiting Language Nodes */}
+              {uniqueLanguages.map((lang, index) => {
+                const angle = (index / uniqueLanguages.length) * 2 * Math.PI;
+                const radius = index % 2 === 0 ? 120 : 180; // alternate between inner and outer orbit
+                const top = `calc(50% + ${Math.sin(angle) * radius}px)`;
+                const left = `calc(50% + ${Math.cos(angle) * radius}px)`;
+
+                return (
+                  <div 
+                    key={index} 
+                    className="absolute flex flex-col items-center justify-center gap-1 transform -translate-x-1/2 -translate-y-1/2 group"
+                    style={{ top, left }}
+                  >
+                    <div className="w-10 h-10 bg-white border-2 border-emerald-400 rounded-full shadow-md flex items-center justify-center text-[10px] font-bold text-slate-700 group-hover:scale-110 group-hover:border-emerald-500 group-hover:bg-emerald-50 transition-all cursor-default relative">
+                      {lang?.substring(0, 2).toUpperCase()}
+                      
+                      {/* Connection Line to center (simulated via rotated div) */}
+                      <div 
+                         className="absolute w-px bg-slate-200 -z-10" 
+                         style={{
+                           height: `${radius - 30}px`,
+                           bottom: '50%',
+                           transformOrigin: 'bottom',
+                           transform: `rotate(${angle * (180/Math.PI) + 90}deg)`,
+                         }}
+                      ></div>
+                    </div>
+                    <span className="text-[10px] font-bold text-slate-500 bg-white px-2 py-0.5 rounded-full border border-slate-100">{lang}</span>
+                  </div>
+                );
+              })}
+            </section>
+
+            {/* RIGHT: Language Proficiency Card & Stats */}
+            <section className="space-y-6">
+              
+              <div className="p-6 rounded-3xl bg-slate-900 border border-slate-800 shadow-xl relative overflow-hidden text-white flex flex-col items-center justify-center min-h-[200px]">
+                {/* Imitating the dark UI card from Image 2 just for this specific proficiency widget to add contrast, or keep it light?
+                    User said "change the dark theme in image 2 to white as well". Let's make this card white! */}
+              </div>
+
+              {/* RE-DO RIGHT PANEL AS WHITE THEME */}
+              <div className="p-8 rounded-3xl bg-white border border-slate-200 shadow-sm relative overflow-hidden flex flex-col min-h-[400px]">
+                
+                <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center gap-3">
+                     <div className="w-12 h-12 rounded-full border-2 border-emerald-400 flex items-center justify-center text-slate-700 font-bold bg-emerald-50 shadow-inner">
+                       {uniqueLanguages[0]?.substring(0, 2).toUpperCase() || 'JS'}
+                     </div>
+                     <div>
+                       <h4 className="text-xl font-black text-slate-800 tracking-tight">{uniqueLanguages[0] || 'JavaScript'}</h4>
+                       <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-500">ADVANCED</span>
+                     </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2 mb-8">
+                  <div className="flex justify-between text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                    <span>Proficiency</span>
+                    <span className="text-emerald-500">{portfolioData.portfolio.portfolioStrengthScore}%</span>
+                  </div>
+                  <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden shadow-inner">
+                    <div className="h-full bg-emerald-400 rounded-full" style={{ width: `${portfolioData.portfolio.portfolioStrengthScore}%` }}></div>
+                  </div>
+                </div>
+
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-4 border-b border-slate-100 pb-2">
+                    // RELATED PROJECTS
                   </span>
-                  <span className="text-[9px] text-slate-400 uppercase font-bold">/ 100</span>
+                  <div className="flex flex-wrap gap-2">
+                    {portfolioData.topRepositories.slice(0, 5).map(repo => (
+                      <div key={repo.githubRepoId} className="px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-[11px] font-semibold text-slate-600 hover:bg-slate-100 cursor-pointer transition-colors shadow-sm">
+                        {repo.name}
+                      </div>
+                    ))}
+                    {portfolioData.topRepositories.length > 5 && (
+                      <div className="px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-100 text-[11px] font-bold text-slate-500 shadow-sm">
+                        +{portfolioData.topRepositories.length - 5} more
+                      </div>
+                    )}
+                  </div>
                 </div>
+
+                <div className="absolute right-6 bottom-6 h-32 w-1.5 bg-slate-100 rounded-full overflow-hidden">
+                   <div className="absolute bottom-0 w-full bg-emerald-400 rounded-full" style={{ height: '75%' }}></div>
+                </div>
+
               </div>
 
-              <span className="text-xs font-semibold text-blue-300">
-                {portfolioData.portfolio.portfolioStrengthScore >= 75
-                  ? 'Strong Technical Portfolio'
-                  : 'Developing Portfolio'}
-              </span>
-            </div>
-
-            {/* STRENGTHS & IMPROVEMENT AREAS */}
-            <div className="md:col-span-2 p-6 rounded-3xl bg-slate-900/60 border border-slate-800 space-y-4 flex flex-col justify-between">
-              <div>
-                <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                  <Zap className="w-3.5 h-3.5 text-amber-400" /> Evidence-Based Insights
-                </h4>
-                <div className="space-y-2">
-                  {portfolioData.portfolio.strengths.map((str, i) => (
-                    <p key={i} className="text-xs text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-xl font-medium">
-                      {str}
-                    </p>
-                  ))}
-                  {portfolioData.portfolio.improvements.map((imp, i) => (
-                    <p key={i} className="text-xs text-amber-300 bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-xl font-medium">
-                      {imp}
-                    </p>
-                  ))}
-                </div>
-              </div>
-
-              {/* Sub-breakdown bars */}
-              <div className="grid grid-cols-4 gap-2 pt-2 border-t border-slate-800 text-center text-[10px]">
-                <div className="p-2 rounded-xl bg-slate-950/60 border border-slate-800">
-                  <span className="text-slate-400 block">Depth</span>
-                  <span className="font-bold text-slate-200">{portfolioData.portfolio.technicalDepthScore}/100</span>
-                </div>
-                <div className="p-2 rounded-xl bg-slate-950/60 border border-slate-800">
-                  <span className="text-slate-400 block">Quality</span>
-                  <span className="font-bold text-slate-200">{portfolioData.portfolio.projectQualityScore}/100</span>
-                </div>
-                <div className="p-2 rounded-xl bg-slate-950/60 border border-slate-800">
-                  <span className="text-slate-400 block">Docs</span>
-                  <span className="font-bold text-slate-200">{portfolioData.portfolio.documentationScore}/100</span>
-                </div>
-                <div className="p-2 rounded-xl bg-slate-950/60 border border-slate-800">
-                  <span className="text-slate-400 block">Testing</span>
-                  <span className="font-bold text-slate-200">{portfolioData.portfolio.testingScore}/100</span>
-                </div>
-              </div>
-            </div>
+            </section>
           </div>
 
           {/* TOP HIGHLIGHTED PROJECTS GRID */}
-          <section className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div className="flex items-center gap-2">
-                <Code2 className="w-5 h-5 text-indigo-400" />
-                <h3 className="text-base font-bold text-white">Top Technical Projects</h3>
+          <section className="p-6 md:p-8 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-6">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-blue-50 text-blue-500 border border-blue-100">
+                  <Code2 className="w-5 h-5" />
+                </div>
+                <h3 className="text-lg font-bold text-slate-800">Top Technical Projects</h3>
               </div>
-              <span className="text-xs text-slate-400">Ranked by Technical Relevance</span>
+              <span className="text-xs font-semibold text-slate-500 bg-slate-50 px-3 py-1 rounded-full border border-slate-100">
+                Ranked by Technical Relevance
+              </span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {portfolioData.topRepositories.map((repo) => (
                 <div
                   key={repo.githubRepoId}
-                  className="p-5 rounded-2xl bg-slate-950/80 border border-slate-800 hover:border-indigo-500/40 transition-all flex flex-col justify-between gap-3 group"
+                  className="p-5 rounded-2xl bg-white border border-slate-200 hover:border-blue-300 transition-all flex flex-col justify-between gap-4 group shadow-sm hover:shadow-md"
                 >
                   <div>
-                    <div className="flex items-center justify-between gap-2 mb-1.5">
-                      <span className="px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-400 text-[10px] font-semibold border border-blue-500/20">
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <span className="px-2.5 py-1 rounded-md bg-blue-50 text-blue-600 text-[10px] font-bold border border-blue-100 uppercase tracking-wider">
                         {repo.classification}
                       </span>
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-mono text-indigo-300 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">
+                        <span className="text-[10px] font-mono font-bold text-slate-500 bg-slate-50 px-2.5 py-1 rounded-md border border-slate-200">
                           Complexity: {repo.complexityScore}
                         </span>
                         <a
                           href={repo.htmlUrl}
                           target="_blank"
                           rel="noreferrer"
-                          className="text-slate-500 hover:text-white transition-colors"
+                          className="text-slate-400 hover:text-blue-500 transition-colors p-1"
                         >
-                          <ExternalLink className="w-3.5 h-3.5" />
+                          <ExternalLink className="w-4 h-4" />
                         </a>
                       </div>
                     </div>
-                    <h4 className="text-sm font-bold text-white group-hover:text-blue-400 transition-colors">
+                    <h4 className="text-base font-bold text-slate-800 group-hover:text-blue-600 transition-colors">
                       {repo.name}
                     </h4>
-                    <p className="text-xs text-slate-400 mt-1 line-clamp-2">
+                    <p className="text-xs text-slate-500 mt-1.5 line-clamp-2 font-medium leading-relaxed">
                       {repo.description || 'No description provided.'}
                     </p>
                   </div>
 
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-900">
-                    <span className="text-[11px] text-slate-400 font-medium">
-                      Primary: <strong className="text-slate-200">{repo.primaryLanguage || 'Software'}</strong>
+                  <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+                    <span className="text-[11px] text-slate-500 font-semibold">
+                      Primary: <strong className="text-slate-700">{repo.primaryLanguage || 'Software'}</strong>
                     </span>
                     <button
                       onClick={() => handleInspectRepo(repo)}
-                      className="px-3 py-1 rounded-lg bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/30 text-xs font-semibold flex items-center gap-1 transition-all"
+                      className="px-3.5 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 text-xs font-bold flex items-center gap-1.5 transition-all"
                     >
-                      <Sparkles className="w-3 h-3" /> Inspect Bullets
+                      <Sparkles className="w-3.5 h-3.5" /> Inspect Bullets
                     </button>
                   </div>
                 </div>
@@ -359,41 +391,50 @@ export const GitHubPortfolioDashboard: React.FC = () => {
           </section>
 
           {/* RESUME ↔ GITHUB SKILL EVIDENCE MATRIX */}
-          <section className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div className="flex items-center gap-2">
-                <FileCheck className="w-5 h-5 text-emerald-400" />
-                <h3 className="text-base font-bold text-white">Resume ↔ GitHub Evidence Matrix</h3>
+          <section className="p-6 md:p-8 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-6">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-500 border border-emerald-100">
+                  <FileCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-800">Resume ↔ GitHub Evidence Matrix</h3>
+                  <span className="text-xs font-medium text-slate-500">Verified Against Repository Manifests</span>
+                </div>
               </div>
-              <span className="text-xs text-slate-400">Verified Against Repository Manifests</span>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {portfolioData.skillMatrix.map((item, idx) => (
                 <div
                   key={idx}
-                  className={`p-3.5 rounded-2xl border text-xs flex items-center justify-between ${
+                  className={`p-4 rounded-2xl border text-xs flex items-center justify-between transition-colors shadow-sm ${
                     item.category === 'Strong Evidence'
-                      ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-200'
+                      ? 'bg-emerald-50/50 border-emerald-200'
                       : item.category === 'GitHub Only'
-                      ? 'bg-purple-500/10 border-purple-500/30 text-purple-200'
+                      ? 'bg-purple-50/50 border-purple-200'
                       : item.category === 'Resume Only'
-                      ? 'bg-slate-900 border-slate-800 text-slate-300'
-                      : 'bg-blue-500/10 border-blue-500/30 text-blue-200'
+                      ? 'bg-slate-50/50 border-slate-200'
+                      : 'bg-blue-50/50 border-blue-200'
                   }`}
                 >
                   <div>
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <span className="font-bold text-white text-sm">{item.skill}</span>
-                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-950/60 border border-slate-800">
+                    <div className="flex items-center gap-2.5 mb-1.5">
+                      <span className="font-extrabold text-slate-800 text-sm">{item.skill}</span>
+                      <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border ${
+                        item.category === 'Strong Evidence' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' :
+                        item.category === 'GitHub Only' ? 'bg-purple-100 text-purple-700 border-purple-200' :
+                        item.category === 'Resume Only' ? 'bg-slate-200 text-slate-700 border-slate-300' :
+                        'bg-blue-100 text-blue-700 border-blue-200'
+                      }`}>
                         {item.category}
                       </span>
                     </div>
-                    <p className="text-[11px] opacity-80">{item.recommendation}</p>
+                    <p className="text-[11px] font-medium text-slate-600">{item.recommendation}</p>
                   </div>
 
                   {item.repoCount > 0 && (
-                    <span className="text-[10px] font-mono font-bold bg-slate-950 px-2 py-1 rounded-md border border-slate-800 shrink-0">
+                    <span className="text-[10px] font-mono font-bold bg-white text-slate-700 px-2.5 py-1 rounded-md border border-slate-200 shadow-sm shrink-0">
                       {item.repoCount} {item.repoCount === 1 ? 'Repo' : 'Repos'}
                     </span>
                   )}
