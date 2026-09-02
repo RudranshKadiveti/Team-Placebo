@@ -5,6 +5,8 @@ import { PortfolioScorer, AnalyzedRepoResult, PortfolioAnalysisSummary } from '.
 import { SkillMatcher, SkillEvidenceItem } from './skillMatcher.js';
 import { AISummarizer } from './aiSummarizer.js';
 
+import { extractGitHubInfo } from '../../utils/githubExtractor.js';
+
 export interface GitHubStatusResponse {
   connected: boolean;
   username?: string;
@@ -43,8 +45,13 @@ export class GitHubService {
   /**
    * Connect GitHub Account by Username / Token
    */
-  static async connect(userId: string, username: string, accessToken?: string) {
-    const cleanUsername = username.trim();
+  static async connect(userId: string, usernameInput: string, accessToken?: string) {
+    const extracted = extractGitHubInfo(usernameInput);
+    const cleanUsername = extracted.username || usernameInput.trim();
+
+    if (!cleanUsername) {
+      throw new Error('Invalid GitHub username or URL provided.');
+    }
 
     // Verify user exists on GitHub
     const githubUser = await GitHubClient.getUser(cleanUsername, accessToken);

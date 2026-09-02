@@ -176,3 +176,26 @@ model GitHubRepository {
   @@unique([userId, githubRepoId])
   @@map("github_repositories")
 }
+
+model AIRepositoryEmbedding {
+  id                 String                      @id @default(uuid())
+  fullName           String                      @unique @map("full_name")
+  repoName           String                      @map("repo_name")
+  owner              String
+  htmlUrl            String                      @map("html_url")
+  description        String?
+  primaryLanguage    String?                     @map("primary_language")
+  topics             String?
+  frameworkStack     String?                     @map("framework_stack")
+  aiCategory         String?                     @map("ai_category")
+  stars              Int                         @default(0)
+  forks              Int                         @default(0)
+  maintenanceStatus  String?                     @map("maintenance_status")
+  popularityTier     String?                     @map("popularity_tier")
+  embedding          Unsupported("vector(384)")?
+  embeddingModel     String                      @default("BAAI/bge-small-en-v1.5") @map("embedding_model")
+  embeddingDimension Int                         @default(384) @map("embedding_dimension")
+  createdAt          DateTime                    @default(now()) @map("created_at")
+
+  @@map("ai_repository_embeddings")
+}

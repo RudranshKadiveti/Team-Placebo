@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { RoleAnalysisResult, ActionPlanItem, resumeService } from '../services/resumeService';
-import { Target, Search, CheckCircle2, AlertTriangle, Lightbulb, Clock, Code2, RefreshCw, ChevronRight, BarChart3, Rocket, Zap } from 'lucide-react';
-import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts';
+import { Target, Search, CheckCircle2, AlertTriangle, Clock, Code2, RefreshCw, Rocket, Zap } from 'lucide-react';
+import { Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer } from 'recharts';
 
 interface RoleAnalysisDashboardProps {
   resumeId: string;

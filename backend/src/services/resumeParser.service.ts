@@ -15,6 +15,7 @@ export interface StructuredResume {
 
 import OpenAI from 'openai';
 import { env } from '../config/env.js';
+import { extractGitHubInfo } from '../utils/githubExtractor.js';
 
 /**
  * Deterministic Regex-based Resume Section Extractor Fallback
@@ -193,14 +194,34 @@ export const parseResumeRecord = async (resumeId: string, userId: string) => {
   }
 
   const structuredContent = await parseResumeTextWithAI(rawText);
+  const githubInfo = extractGitHubInfo(rawText);
+
+  const fullStructuredContent = {
+    ...structuredContent,
+    detectedGitHubUsername: githubInfo.username,
+    detectedGitHubUrl: githubInfo.url,
+  };
 
   const updatedResume = await prisma.resume.update({
     where: { id: resumeId },
     data: { 
       rawText,
-      structuredContent: JSON.stringify(structuredContent)
+      structuredContent: JSON.stringify(fullStructuredContent)
     },
   });
+
+  // Attempt auto-connect if user is not already connected and valid GitHub link detected
+  if (githubInfo.username) {
+    try {
+      const existingConn = await prisma.gitHubConnection.findUnique({ where: { userId } });
+      if (!existingConn) {
+        const { GitHubService } = await import('./github/github.service.js');
+        await GitHubService.connect(userId, githubInfo.username);
+      }
+    } catch (err: any) {
+      console.warn('Auto-connect GitHub from resume failed:', err.message);
+    }
+  }
 
   return updatedResume;
 };

@@ -83,7 +83,8 @@ export class PortfolioScorer {
       return 'Tutorial / Practice';
     }
 
-    return repo.primaryLanguage || ('language' in repo && repo.language) ? `${repo.primaryLanguage || (repo as any).language} Project` : 'Software Project';
+    const lang = ('primaryLanguage' in repo ? repo.primaryLanguage : null) || ('language' in repo ? (repo as any).language : null);
+    return lang ? `${lang} Project` : 'Software Project';
   }
 
   /**

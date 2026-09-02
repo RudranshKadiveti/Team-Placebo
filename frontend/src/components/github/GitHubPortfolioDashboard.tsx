@@ -10,7 +10,6 @@ import {
   Code2,
   ExternalLink,
   FileCheck,
-  Zap,
   Unlink,
 } from 'lucide-react';
 
@@ -188,25 +187,35 @@ export const GitHubPortfolioDashboard: React.FC = () => {
           </div>
         ) : (
           <form onSubmit={handleConnect} className="flex flex-col sm:flex-row items-center gap-2 w-full md:w-auto">
-            <input
-              type="text"
-              value={usernameInput}
-              onChange={(e) => setUsernameInput(e.target.value)}
-              placeholder="GitHub Username"
-              required
-              className="bg-slate-50 border border-slate-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-50 rounded-xl px-4 py-2.5 text-xs text-slate-700 font-medium outline-none w-full sm:w-48 transition-all"
-            />
-            <input
-              type="password"
-              value={tokenInput}
-              onChange={(e) => setTokenInput(e.target.value)}
-              placeholder="GitHub PAT (Optional)"
-              className="bg-slate-50 border border-slate-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-50 rounded-xl px-4 py-2.5 text-xs text-slate-700 font-medium outline-none w-full sm:w-48 transition-all"
-            />
+            <div className="w-full sm:w-64">
+              <input
+                type="text"
+                value={usernameInput}
+                onChange={(e) => setUsernameInput(e.target.value)}
+                placeholder="GitHub URL or Username (e.g. github.com/user)"
+                required
+                className="bg-slate-50 border border-slate-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-50 rounded-xl px-4 py-2.5 text-xs text-slate-700 font-medium outline-none w-full transition-all"
+              />
+              <span className="text-[10px] text-slate-400 font-medium px-1 mt-0.5 block">
+                Paste your full profile URL or enter username
+              </span>
+            </div>
+            <div className="w-full sm:w-44">
+              <input
+                type="password"
+                value={tokenInput}
+                onChange={(e) => setTokenInput(e.target.value)}
+                placeholder="PAT (Optional)"
+                className="bg-slate-50 border border-slate-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-50 rounded-xl px-4 py-2.5 text-xs text-slate-700 font-medium outline-none w-full transition-all"
+              />
+              <span className="text-[10px] text-slate-400 font-medium px-1 mt-0.5 block">
+                Private repo access token
+              </span>
+            </div>
             <button
               type="submit"
               disabled={syncing}
-              className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-md shadow-slate-900/20 shrink-0"
+              className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-md shadow-slate-900/20 shrink-0 self-start mt-0.5"
             >
               <Github className="w-4 h-4" />
               {syncing ? 'Connecting...' : 'Connect'}

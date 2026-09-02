@@ -27,6 +27,7 @@ __pycache__/
 storage/*
 !storage/.gitkeep
 backend/uploads/
+backend/src/scripts/kaggle_data/
 tmp/
 
 # Logs

@@ -1,6 +1,5 @@
 import { prisma } from '../config/database.js';
 import { profileSchema, careerGoalSchema } from '../validators/profile.validator.js';
-import { ExperienceLevel } from '@prisma/client';
 
 export interface ProfileData {
   phone?: string | null;
@@ -9,7 +8,7 @@ export interface ProfileData {
   degree?: string | null;
   fieldOfStudy?: string | null;
   graduationYear?: number | null;
-  experienceLevel?: ExperienceLevel | null;
+  experienceLevel?: string | null;
   bio?: string | null;
 }
 
@@ -32,7 +31,7 @@ export const calculateProfileCompletion = (
     degree?: string | null;
     fieldOfStudy?: string | null;
     graduationYear?: number | null;
-    experienceLevel?: ExperienceLevel | null;
+    experienceLevel?: string | null;
     bio?: string | null;
   } | null,
   goalsCount: number = 0

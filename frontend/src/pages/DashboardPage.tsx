@@ -18,14 +18,13 @@ import {
   Github,
   Bell,
   MoreHorizontal,
-  Download,
   AlertTriangle,
   Lightbulb,
   FileCheck2,
   Check,
   Zap,
 } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 
 export const DashboardPage: React.FC = () => {
   const { user, logout } = useAuth();
