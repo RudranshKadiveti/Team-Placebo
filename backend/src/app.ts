@@ -8,6 +8,7 @@ import authRoutes from './routes/auth.routes.js';
 import profileRoutes from './routes/profile.routes.js';
 import resumeRoutes from './routes/resume.routes.js';
 import githubRoutes from './routes/github.routes.js';
+import careerRoutes from './routes/career.routes.js';
 import { notFoundHandler } from './middleware/notFound.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
@@ -40,6 +41,7 @@ app.use('/api/profile', profileRoutes);
 app.use('/api/resumes', resumeRoutes);
 app.use('/api/resume', resumeRoutes);
 app.use('/api/github', githubRoutes);
+app.use('/api/career', careerRoutes);
 
 // 404 & Error Handlers
 app.use(notFoundHandler);

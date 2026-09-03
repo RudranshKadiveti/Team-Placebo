@@ -5,6 +5,7 @@ import { resumeService, ResumeMetadata, AtsScore } from '../services/resumeServi
 import { BulletTailoringModal } from '../components/BulletTailoringModal';
 import { RoleAnalysisDashboard } from '../components/RoleAnalysisDashboard';
 import { GitHubPortfolioDashboard } from '../components/github/GitHubPortfolioDashboard';
+import { CareerPathDashboard } from '../components/CareerPathDashboard';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   LogOut,
@@ -23,6 +24,7 @@ import {
   FileCheck2,
   Check,
   Zap,
+  Briefcase,
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 
@@ -46,7 +48,7 @@ export const DashboardPage: React.FC = () => {
   // Modals & Active Tab State
   const [isTailorModalOpen, setIsTailorModalOpen] = useState(false);
   const [selectedBulletToTailor, setSelectedBulletToTailor] = useState('');
-  const [activeTab, setActiveTab] = useState<'ats' | 'role_analysis' | 'github'>('ats');
+  const [activeTab, setActiveTab] = useState<'ats' | 'role_analysis' | 'github' | 'career_path'>('ats');
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -223,6 +225,15 @@ export const DashboardPage: React.FC = () => {
             <Github className="w-4 h-4" /> GitHub Intelligence
           </button>
 
+          <button
+            onClick={() => setActiveTab('career_path')}
+            className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
+              activeTab === 'career_path' ? 'bg-emerald-50 text-emerald-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+            }`}
+          >
+            <Briefcase className="w-4 h-4" /> Career Path Engine
+          </button>
+
           <Link
             to="/profile"
             className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-colors"
@@ -245,7 +256,7 @@ export const DashboardPage: React.FC = () => {
       <main className="flex-1 flex flex-col h-screen overflow-y-auto">
         <header className="bg-white border-b border-slate-200 px-8 py-4 flex items-center justify-between sticky top-0 z-20">
           <h1 className="text-xl font-bold text-slate-800">
-            {activeTab === 'ats' ? 'CV Extraction & Diagnostics' : activeTab === 'role_analysis' ? 'Role Match Analysis' : 'GitHub Portfolio Analytics'}
+            {activeTab === 'ats' ? 'CV Extraction & Diagnostics' : activeTab === 'role_analysis' ? 'Role Match Analysis' : activeTab === 'github' ? 'GitHub Portfolio Analytics' : 'Career Path & Job Search Engine'}
           </h1>
           <div className="flex items-center gap-4">
             <button className="p-2 text-slate-400 hover:text-slate-600 transition-colors">
@@ -490,6 +501,12 @@ export const DashboardPage: React.FC = () => {
           {activeTab === 'github' && (
             <div className="animate-in fade-in duration-300">
               <GitHubPortfolioDashboard />
+            </div>
+          )}
+
+          {activeTab === 'career_path' && (
+            <div className="animate-in fade-in duration-300">
+              <CareerPathDashboard />
             </div>
           )}
         </div>

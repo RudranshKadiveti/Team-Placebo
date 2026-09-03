@@ -147,10 +147,10 @@ export async function runIngestionPipeline() {
   console.log(`✨ Total Cleaned Unique Repositories: ${records.length}`);
 
   // Fetch already existing repositories to skip re-embedding
-  const existingRepos = await prisma.$queryRaw<Array<{ fullName: string }>>`
-    SELECT "fullName" FROM ai_repository_embeddings WHERE embedding IS NOT NULL
+  const existingRepos = await prisma.$queryRaw<Array<{ full_name: string }>>`
+    SELECT "full_name" FROM ai_repository_embeddings WHERE embedding IS NOT NULL
   `;
-  const existingSet = new Set(existingRepos.map((r) => r.fullName));
+  const existingSet = new Set(existingRepos.map((r) => r.full_name));
   console.log(`⚡ Existing Embedded Repositories in Database: ${existingSet.size}`);
 
   const pendingRecords = records.filter((r) => !existingSet.has(r.fullName));
@@ -182,23 +182,23 @@ export async function runIngestionPipeline() {
       await prisma.$executeRawUnsafe(
         `
         INSERT INTO ai_repository_embeddings (
-          "id", "fullName", "repoName", "owner", "htmlUrl", "description",
-          "primaryLanguage", "topics", "frameworkStack", "aiCategory",
-          "stars", "forks", "maintenanceStatus", "popularityTier",
-          "embedding", "embeddingModel", "embeddingDimension"
+          "id", "full_name", "repo_name", "owner", "html_url", "description",
+          "primary_language", "topics", "framework_stack", "ai_category",
+          "stars", "forks", "maintenance_status", "popularity_tier",
+          "embedding", "embedding_model", "embedding_dimension"
         ) VALUES (
           gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14::vector, $15, $16
         )
-        ON CONFLICT ("fullName") DO UPDATE SET
+        ON CONFLICT ("full_name") DO UPDATE SET
           "description" = EXCLUDED."description",
-          "primaryLanguage" = EXCLUDED."primaryLanguage",
+          "primary_language" = EXCLUDED."primary_language",
           "topics" = EXCLUDED."topics",
-          "frameworkStack" = EXCLUDED."frameworkStack",
-          "aiCategory" = EXCLUDED."aiCategory",
+          "framework_stack" = EXCLUDED."framework_stack",
+          "ai_category" = EXCLUDED."ai_category",
           "stars" = EXCLUDED."stars",
           "forks" = EXCLUDED."forks",
-          "maintenanceStatus" = EXCLUDED."maintenanceStatus",
-          "popularityTier" = EXCLUDED."popularityTier",
+          "maintenance_status" = EXCLUDED."maintenance_status",
+          "popularity_tier" = EXCLUDED."popularity_tier",
           "embedding" = EXCLUDED."embedding";
         `,
         item.fullName,

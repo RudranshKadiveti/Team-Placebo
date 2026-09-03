@@ -30,11 +30,11 @@ async function verify() {
     distance: number;
   }>>`
     SELECT 
-      "fullName", 
+      "full_name" as "fullName", 
       "description", 
-      "primaryLanguage", 
+      "primary_language" as "primaryLanguage", 
       "topics", 
-      "aiCategory", 
+      "ai_category" as "aiCategory", 
       "stars",
       (embedding <=> ${vectorSql}::vector) as distance
     FROM ai_repository_embeddings
