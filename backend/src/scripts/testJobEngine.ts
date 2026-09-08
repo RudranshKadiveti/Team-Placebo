@@ -10,7 +10,7 @@ async function testJobEngine() {
   try {
     // 1. Search Jobs
     console.log(`\n🔍 Searching for: ${targetRole}`);
-    const jobs = await JobSearchService.searchJobs(targetRole, 3);
+    const jobs = await JobSearchService.searchJobs(targetRole, 'Worldwide');
     
     if (jobs.length === 0) {
       console.log('No jobs found.');

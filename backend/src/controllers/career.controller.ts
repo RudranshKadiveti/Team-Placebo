@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { JobSearchService } from '../services/jobSearch.service.js';
 import { CareerRoadmapService } from '../services/careerRoadmap.service.js';
+import { extractUserProfile } from '../services/roadmap/profileNormalizer.js';
 import { prisma } from '../config/database.js';
 
 export class CareerController {
@@ -10,16 +11,12 @@ export class CareerController {
   static async searchJobs(req: Request, res: Response) {
     try {
       const { targetRole, region } = req.body;
-      const userId = (req as any).user?.userId;
 
-      if (!targetRole) {
+      if (!targetRole || !targetRole.trim()) {
         return res.status(400).json({ error: 'targetRole is required' });
       }
 
-      // We could optionally fetch the user's profile to extract skills and filter jobs better,
-      // but for now, we just pass the role and region to the job search engine.
       const jobs = await JobSearchService.searchJobs(targetRole, region || 'Worldwide');
-
       res.status(200).json({ jobs });
     } catch (error: any) {
       console.error('[CareerController] searchJobs error:', error);
@@ -28,80 +25,56 @@ export class CareerController {
   }
 
   /**
-   * Generate a roadmap for a specific job and save it to the DB.
+   * Generate or retrieve a roadmap for a specific job.
    */
   static async generateAndSaveRoadmap(req: Request, res: Response) {
     try {
-      const { targetRole, jobTitle, jobDescription, targetCompany, jobUrl } = req.body;
-      const userId = (req as any).user?.userId;
-
+      const userId = (req as any).user?.id || (req as any).user?.userId;
       if (!userId) {
-        return res.status(401).json({ error: 'Unauthorized' });
+        return res.status(401).json({ error: 'Unauthorized: Missing User Session' });
       }
 
-      if (!targetRole || !jobTitle || !jobDescription) {
-        return res.status(400).json({ error: 'targetRole, jobTitle, and jobDescription are required' });
+      const { jobId, job, forceRegenerate, targetRole, jobTitle, jobDescription, targetCompany, jobUrl } = req.body;
+
+      // Normalize job payload whether sent as job object or raw parameters
+      const normalizedJob = {
+        id: jobId || job?.id,
+        title: job?.title || jobTitle || targetRole,
+        company: job?.company || targetCompany || 'Tech Employer',
+        description: job?.description || jobDescription || '',
+        skills: job?.skills || [],
+        url: job?.url || jobUrl || ''
+      };
+
+      if (!normalizedJob.title) {
+        return res.status(400).json({ error: 'Job title or target role is required' });
       }
 
-      // Fetch user's latest parsed resume for skills
-      const latestResume = await prisma.resume.findFirst({
-        where: { userId },
-        orderBy: { uploadedAt: 'desc' },
-      });
-      
-      let userSkills: string[] = [];
-      if (latestResume && latestResume.structuredContent) {
-        try {
-          const parsed = JSON.parse(latestResume.structuredContent);
-          userSkills = parsed.skills || [];
-        } catch (e) {
-          // ignore parsing error
-        }
-      }
-
-      // Fetch user's github skills
-      const githubConnection = await prisma.gitHubConnection.findUnique({
-        where: { userId },
-        include: { repos: true }
-      });
-      
-      let githubSkills: string[] = [];
-      if (githubConnection && githubConnection.repos) {
-        const skillsSet = new Set<string>();
-        githubConnection.repos.forEach(repo => {
-          if (repo.primaryLanguage) skillsSet.add(repo.primaryLanguage);
-          if (repo.topicsJson) {
-            try {
-              const topics = JSON.parse(repo.topicsJson);
-              topics.forEach((t: string) => skillsSet.add(t));
-            } catch (e) {}
-          }
+      // Check if user has uploaded resume or connected GitHub profile
+      const profileData = await extractUserProfile(userId);
+      if (!profileData.hasProfileData) {
+        return res.status(400).json({
+          success: false,
+          missingProfileData: true,
+          missingResume: !profileData.hasResume,
+          missingGithub: !profileData.hasGithub,
+          message: 'Please upload your resume or connect your GitHub profile to generate a personalized learning roadmap.'
         });
-        githubSkills = Array.from(skillsSet);
       }
 
-      // Generate Roadmap
-      const roadmapContent = await CareerRoadmapService.generateRoadmap(
-        targetRole,
-        jobTitle,
-        jobDescription,
-        userSkills,
-        githubSkills
-      );
-
-      // Save Roadmap
-      const savedRoadmap = await CareerRoadmapService.saveRoadmap(
+      const roadmap = await CareerRoadmapService.getOrGenerateRoadmap(
         userId,
-        targetRole,
-        targetCompany || 'Unknown Company',
-        jobUrl || '',
-        roadmapContent
+        normalizedJob,
+        Boolean(forceRegenerate)
       );
 
-      res.status(200).json({ roadmap: savedRoadmap });
+      res.status(200).json({
+        success: true,
+        roadmap
+      });
     } catch (error: any) {
       console.error('[CareerController] generateAndSaveRoadmap error:', error);
-      res.status(500).json({ error: 'Failed to generate roadmap' });
+      res.status(500).json({ error: error.message || 'Failed to generate roadmap' });
     }
   }
 
@@ -110,14 +83,14 @@ export class CareerController {
    */
   static async getSavedRoadmaps(req: Request, res: Response) {
     try {
-      const userId = (req as any).user?.userId;
+      const userId = (req as any).user?.id || (req as any).user?.userId;
       if (!userId) {
         return res.status(401).json({ error: 'Unauthorized' });
       }
 
       const roadmaps = await prisma.careerRoadmap.findMany({
         where: { userId },
-        orderBy: { createdAt: 'desc' }
+        orderBy: { updatedAt: 'desc' }
       });
 
       res.status(200).json({ roadmaps });

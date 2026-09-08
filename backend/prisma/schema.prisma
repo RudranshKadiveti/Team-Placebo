@@ -204,14 +204,19 @@ model AIRepositoryEmbedding {
 model CareerRoadmap {
   id             String   @id @default(uuid())
   userId         String
+  jobId          String?
   targetRole     String
+  jobTitle       String?
   targetCompany  String?
   jobUrl         String?
   roadmapContent String
+  model          String   @default("gpt-4o-mini")
+  profileVersion String   @default("v1")
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([userId, jobId])
   @@map("career_roadmaps")
 }

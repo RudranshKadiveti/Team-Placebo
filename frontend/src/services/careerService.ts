@@ -9,17 +9,85 @@ export interface JobListing {
   salary: string;
   description: string;
   source: string;
+  tags?: string[];
+  skills?: string[];
 }
 
-export interface CareerRoadmap {
+export interface JobAnalysis {
+  role: string;
+  readinessPercentage: number;
+  summary: string;
+  keyStrengths: string[];
+  whyThisRoadmap?: string;
+}
+
+export interface MatchedSkill {
+  skill: string;
+  evidence: string;
+  confidence: 'high' | 'medium' | 'low';
+}
+
+export interface SkillGap {
+  skill: string;
+  priority: 'high' | 'medium' | 'low';
+  reason: string;
+  jobEvidence?: string;
+  currentLevel?: 'none' | 'beginner' | 'intermediate' | 'advanced';
+  targetLevel?: 'beginner' | 'intermediate' | 'advanced';
+}
+
+export interface Resource {
+  title: string;
+  url?: string;
+  type: 'documentation' | 'tutorial' | 'course' | 'article' | 'book';
+}
+
+export interface Milestone {
+  order: number;
+  title: string;
+  reason: string;
+  skillsCovered: string[];
+  estimatedTime: string;
+  prerequisites: string[];
+  topics: string[];
+  project: string;
+  resources: Resource[];
+}
+
+export interface FinalAssessment {
+  biggestGap: string;
+  mostImportantNextStep: string;
+  estimatedTimeToBecomeCompetitive: string;
+}
+
+export interface GeneratedRoadmap {
+  jobAnalysis: JobAnalysis;
+  matchedSkills: MatchedSkill[];
+  skillGaps: SkillGap[];
+  learningPath: Milestone[];
+  finalAssessment: FinalAssessment;
+}
+
+export interface CareerRoadmapRecord {
   id: string;
   userId: string;
+  jobId?: string;
   targetRole: string;
+  jobTitle?: string;
   targetCompany?: string;
   jobUrl?: string;
   roadmapContent: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface RoadmapResponse {
+  success: boolean;
+  roadmap?: GeneratedRoadmap;
+  missingProfileData?: boolean;
+  missingResume?: boolean;
+  missingGithub?: boolean;
+  message?: string;
 }
 
 export const careerService = {
@@ -35,30 +103,32 @@ export const careerService = {
   },
 
   /**
-   * Generate an AI roadmap for a specific job and save it
+   * Generate or retrieve cached AI roadmap for a specific job
    */
   async generateRoadmap(
-    targetRole: string,
-    jobTitle: string,
-    jobDescription: string,
-    targetCompany: string,
-    jobUrl: string
-  ): Promise<CareerRoadmap> {
-    const response = await apiClient.post<{ roadmap: CareerRoadmap }>('/career/roadmap', {
-      targetRole,
-      jobTitle,
-      jobDescription,
-      targetCompany,
-      jobUrl,
-    });
-    return response.data.roadmap;
+    job: JobListing,
+    forceRegenerate: boolean = false
+  ): Promise<RoadmapResponse> {
+    try {
+      const response = await apiClient.post<RoadmapResponse>('/career/roadmap', {
+        jobId: job.id,
+        job,
+        forceRegenerate
+      });
+      return response.data;
+    } catch (err: any) {
+      if (err.response && err.response.data) {
+        return err.response.data;
+      }
+      throw err;
+    }
   },
 
   /**
    * Get all previously saved career roadmaps
    */
-  async getSavedRoadmaps(): Promise<CareerRoadmap[]> {
-    const response = await apiClient.get<{ roadmaps: CareerRoadmap[] }>('/career/roadmap');
+  async getSavedRoadmaps(): Promise<CareerRoadmapRecord[]> {
+    const response = await apiClient.get<{ roadmaps: CareerRoadmapRecord[] }>('/career/roadmap');
     return response.data.roadmaps;
-  },
+  }
 };

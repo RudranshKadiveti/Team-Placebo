@@ -506,7 +506,12 @@ export const DashboardPage: React.FC = () => {
 
           {activeTab === 'career_path' && (
             <div className="animate-in fade-in duration-300">
-              <CareerPathDashboard />
+              <CareerPathDashboard
+                onNavigateToTab={(tab) => {
+                  if (tab === 'resume') setActiveTab('ats');
+                  else if (tab === 'skills' || tab === 'github') setActiveTab('github');
+                }}
+              />
             </div>
           )}
         </div>

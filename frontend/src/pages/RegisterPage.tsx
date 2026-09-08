@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { UserPlus, Mail, Lock, User as UserIcon, AlertCircle, ArrowRight } from 'lucide-react';
+import { AlertCircle, ArrowRight, Sparkles } from 'lucide-react';
 
 export const RegisterPage: React.FC = () => {
   const [name, setName] = useState('');
@@ -9,6 +9,7 @@ export const RegisterPage: React.FC = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isExiting, setIsExiting] = useState(false);
 
   const { register } = useAuth();
   const navigate = useNavigate();
@@ -32,105 +33,105 @@ export const RegisterPage: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      await register(name, email, password);
-      navigate('/dashboard');
+      await register(name.trim(), email.trim(), password);
+      
+      setIsExiting(true);
+      setTimeout(() => {
+        navigate('/dashboard', { replace: true });
+      }, 700);
     } catch (err: unknown) {
       const apiMessage = (err as { response?: { data?: { error?: { message?: string } } } })
         .response?.data?.error?.message;
       setError(apiMessage || 'Registration failed. Please check your details and try again.');
-    } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-6 relative overflow-hidden">
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-blue-600/15 rounded-full blur-3xl pointer-events-none" />
-
-      <div className="w-full max-w-md bg-slate-900/80 border border-slate-800 backdrop-blur-xl rounded-2xl p-8 shadow-2xl relative z-10">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-semibold mb-3">
-            <UserPlus className="w-3.5 h-3.5" /> Account Registration
+    <div 
+      className={`min-h-screen w-full flex items-center justify-end p-6 md:p-16 relative overflow-hidden transition-opacity duration-700 bg-cover bg-center ${isExiting ? 'opacity-0 scale-105' : 'opacity-100 scale-100'}`}
+      style={{ backgroundImage: "url('/login-bg.jpg')" }}
+    >
+      {/* Container for the right-aligned registration card */}
+      <div className={`w-full max-w-md bg-white rounded-3xl p-10 md:p-12 shadow-[0_20px_60px_rgba(0,0,0,0.1)] relative z-10 animate-float-slow transition-all ${isExiting ? 'translate-x-full opacity-0' : 'translate-x-0 opacity-100'} duration-700 mr-0 md:mr-[10vw]`}>
+        
+        {/* Logo Header */}
+        <div className="flex flex-col items-center mb-8">
+          <div className="flex items-center gap-2 mb-8">
+            <Sparkles className="w-6 h-6 text-pink-500 fill-pink-500" />
+            <span className="text-xl font-bold text-slate-800 tracking-tight">CareerPilot <span className="text-slate-400 font-medium">AI</span></span>
           </div>
-          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-white via-slate-200 to-blue-400 bg-clip-text text-transparent">
-            Create an Account
+          
+          <h1 className="text-3xl font-bold text-slate-800 mb-2">
+            Create Account
           </h1>
-          <p className="text-slate-400 text-sm mt-1">Get started with CareerPilot AI</p>
+          <p className="text-slate-500 text-sm font-medium">Join CareerPilot AI and elevate your career</p>
         </div>
 
         {error && (
-          <div className="mb-6 p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-center gap-2.5">
-            <AlertCircle className="w-4 h-4 shrink-0" />
-            <span>{error}</span>
+          <div className="mb-6 p-4 rounded-xl bg-rose-50 border border-rose-100 text-rose-600 text-sm flex items-center gap-3 shadow-sm animate-in fade-in slide-in-from-top-2">
+            <AlertCircle className="w-5 h-5 shrink-0" />
+            <span className="font-medium">{error}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="group space-y-2">
+            <label className="block text-xs font-bold text-slate-700">
               Full Name
             </label>
-            <div className="relative">
-              <UserIcon className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Jane Doe"
-                required
-                className="w-full bg-slate-800/60 border border-slate-700/60 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-xl py-2.5 pl-10 pr-4 text-sm text-slate-100 placeholder-slate-500 outline-none transition-all"
-              />
-            </div>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Jane Doe"
+              required
+              className="w-full bg-white border border-slate-200 focus:border-pink-400 focus:ring-4 focus:ring-pink-50 rounded-xl py-3 px-4 text-sm text-slate-700 placeholder-slate-400 font-medium outline-none transition-all duration-200"
+            />
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-              Email Address
+          <div className="group space-y-2">
+            <label className="block text-xs font-bold text-slate-700">
+              Email address
             </label>
-            <div className="relative">
-              <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="name@example.com"
-                required
-                className="w-full bg-slate-800/60 border border-slate-700/60 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-xl py-2.5 pl-10 pr-4 text-sm text-slate-100 placeholder-slate-500 outline-none transition-all"
-              />
-            </div>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="name@example.com"
+              required
+              className="w-full bg-white border border-slate-200 focus:border-pink-400 focus:ring-4 focus:ring-pink-50 rounded-xl py-3 px-4 text-sm text-slate-700 placeholder-slate-400 font-medium outline-none transition-all duration-200"
+            />
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+          <div className="group space-y-2">
+            <label className="block text-xs font-bold text-slate-700">
               Password
             </label>
-            <div className="relative">
-              <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-                className="w-full bg-slate-800/60 border border-slate-700/60 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-xl py-2.5 pl-10 pr-4 text-sm text-slate-100 placeholder-slate-500 outline-none transition-all"
-              />
-            </div>
-            <p className="text-[11px] text-slate-500 mt-1">Must be at least 8 characters</p>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              required
+              className="w-full bg-white border border-slate-200 focus:border-pink-400 focus:ring-4 focus:ring-pink-50 rounded-xl py-3 px-4 text-sm text-slate-700 placeholder-slate-400 font-medium outline-none transition-all duration-200 tracking-widest"
+            />
+            <p className="text-[11px] text-slate-400 font-medium">Must be at least 8 characters</p>
           </div>
 
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full mt-2 py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-medium text-sm transition-all duration-150 flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full mt-2 py-3.5 px-4 rounded-xl bg-gradient-to-r from-[#ed4375] to-[#f46995] hover:from-[#d63462] hover:to-[#e35a82] active:scale-[0.98] text-white font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 shadow-lg shadow-pink-500/30 disabled:opacity-70 disabled:cursor-not-allowed group"
           >
-            {isSubmitting ? 'Creating account...' : 'Create Account'}
-            <ArrowRight className="w-4 h-4" />
+            {isSubmitting && !isExiting ? 'Creating account...' : 'Create Account'}
+            <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
           </button>
         </form>
 
-        <p className="text-center text-xs text-slate-400 mt-6">
+        <p className="text-center text-xs text-slate-500 font-medium mt-8">
           Already have an account?{' '}
-          <Link to="/login" className="text-blue-400 hover:underline font-semibold">
+          <Link to="/login" className="text-pink-500 hover:text-pink-600 transition-colors font-bold">
             Sign in
           </Link>
         </p>

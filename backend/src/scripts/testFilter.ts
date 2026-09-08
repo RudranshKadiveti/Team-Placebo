@@ -7,7 +7,7 @@ async function testFilter() {
   console.log(`Searching via JobSearchService for: ${role} in ${region}`);
   
   try {
-    const jobs = await JobSearchService.searchJobs(role, region, 10);
+    const jobs = await JobSearchService.searchJobs(role, region);
     console.log('Results count:', jobs.length);
     console.log('Filtered Titles:');
     jobs.forEach(j => console.log(` - ${j.title} (${j.location})`));

@@ -1,19 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Search, Briefcase, MapPin, DollarSign, ExternalLink, ArrowRight, Save, Clock, Loader2, Sparkles, Map } from 'lucide-react';
-import { careerService, JobListing, CareerRoadmap } from '../services/careerService';
+import { careerService, JobListing, CareerRoadmapRecord } from '../services/careerService';
+import { RoadmapModal } from './roadmap/RoadmapModal';
 
-export const CareerPathDashboard: React.FC = () => {
+interface CareerPathDashboardProps {
+  onNavigateToTab?: (tab: string) => void;
+}
+
+export const CareerPathDashboard: React.FC<CareerPathDashboardProps> = ({ onNavigateToTab }) => {
   const [targetRole, setTargetRole] = useState('');
   const [region, setRegion] = useState('Worldwide');
   const [jobs, setJobs] = useState<JobListing[]>([]);
-  const [savedRoadmaps, setSavedRoadmaps] = useState<CareerRoadmap[]>([]);
+  const [savedRoadmaps, setSavedRoadmaps] = useState<CareerRoadmapRecord[]>([]);
   
   const [isSearching, setIsSearching] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [selectedJob, setSelectedJob] = useState<JobListing | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   
-  const [activeJobId, setActiveJobId] = useState<string | null>(null);
-  const [activeRoadmap, setActiveRoadmap] = useState<CareerRoadmap | null>(null);
+  const [activeRoadmap, setActiveRoadmap] = useState<CareerRoadmapRecord | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -37,7 +42,6 @@ export const CareerPathDashboard: React.FC = () => {
     setError(null);
     setJobs([]);
     setActiveRoadmap(null);
-    setActiveJobId(null);
 
     try {
       const results = await careerService.searchJobs(targetRole, region);
@@ -47,39 +51,19 @@ export const CareerPathDashboard: React.FC = () => {
       }
     } catch (err: any) {
       setError('Failed to search jobs. Please try again.');
-    } finally {
+    } fontally: {
       setIsSearching(false);
     }
   };
 
-  const handleGenerateRoadmap = async (job: JobListing) => {
-    setIsGenerating(true);
-    setError(null);
-    setActiveJobId(job.id);
-    setActiveRoadmap(null);
-
-    try {
-      const roadmap = await careerService.generateRoadmap(
-        targetRole,
-        job.title,
-        job.description,
-        job.company,
-        job.url
-      );
-      setActiveRoadmap(roadmap);
-      loadSavedRoadmaps(); // refresh saved list
-    } catch (err: any) {
-      setError('Failed to generate roadmap. Please ensure your Resume and GitHub are connected.');
-      setActiveJobId(null);
-    } finally {
-      setIsGenerating(false);
-    }
+  const handleOpenRoadmapModal = (job: JobListing) => {
+    setSelectedJob(job);
+    setIsModalOpen(true);
   };
 
-  const viewSavedRoadmap = (roadmap: CareerRoadmap) => {
+  const viewSavedRoadmap = (roadmap: CareerRoadmapRecord) => {
     setActiveRoadmap(roadmap);
     setTargetRole(roadmap.targetRole);
-    // Clear jobs view so they focus on the roadmap
     setJobs([]);
   };
 
@@ -95,61 +79,37 @@ export const CareerPathDashboard: React.FC = () => {
             <div className="p-2.5 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100 shadow-sm">
               <Map className="w-5 h-5" />
             </div>
-            <h2 className="text-xl font-black text-slate-800 tracking-tight">Career Path & Roadmap</h2>
+            <h2 className="text-xl font-black text-slate-800 tracking-tight">Career Path & AI Roadmap</h2>
           </div>
           <p className="text-sm font-medium text-slate-500 max-w-lg">
-            Enter your target role. We'll find real remote job openings and use your connected GitHub & Resume data to generate a personalized AI roadmap to bridge your skill gap.
+            Search for job opportunities and generate a personalized AI learning path comparing your verified resume & GitHub skills against the job requirements.
           </p>
         </div>
 
-        <form onSubmit={handleSearch} className="flex flex-col md:flex-row w-full lg:w-auto gap-3">
-          <div className="relative flex-1 md:w-64 lg:w-80">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+        <form onSubmit={handleSearch} className="w-full md:w-auto flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1 sm:w-64">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              list="role-suggestions"
+              placeholder="e.g. Full Stack Engineer"
               value={targetRole}
               onChange={(e) => setTargetRole(e.target.value)}
-              placeholder="e.g. Senior React Developer"
-              required
-              className="w-full bg-slate-50 border border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 rounded-xl pl-11 pr-4 py-3 text-sm font-semibold text-slate-700 outline-none transition-all shadow-sm"
+              className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all bg-slate-50/50"
             />
-            <datalist id="role-suggestions">
-              <option value="Frontend Developer" />
-              <option value="Frontend React Developer" />
-              <option value="Backend Developer" />
-              <option value="Backend Node.js Engineer" />
-              <option value="Full Stack Developer" />
-              <option value="Software Engineer" />
-              <option value="DevOps Engineer" />
-              <option value="Data Scientist" />
-              <option value="Data Engineer" />
-              <option value="Machine Learning Engineer" />
-              <option value="Product Manager" />
-              <option value="UI/UX Designer" />
-              <option value="Mobile Developer" />
-              <option value="Cybersecurity Analyst" />
-              <option value="Cloud Architect" />
-            </datalist>
           </div>
-          
-          <div className="relative flex-1 md:w-48">
-            <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+
+          <div className="relative sm:w-40">
             <select
               value={region}
               onChange={(e) => setRegion(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 rounded-xl pl-11 pr-4 py-3 text-sm font-semibold text-slate-700 outline-none transition-all shadow-sm appearance-none"
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all bg-slate-50/50 appearance-none cursor-pointer"
             >
-              <option value="Worldwide">Worldwide (Anywhere)</option>
+              <option value="Worldwide">Worldwide</option>
               <option value="India">India</option>
               <option value="USA">USA</option>
-              <option value="North America">North America</option>
               <option value="Europe">Europe</option>
-              <option value="UK">United Kingdom</option>
-              <option value="Canada">Canada</option>
               <option value="LATAM">Latin America</option>
               <option value="Asia">Asia</option>
-              <option value="Oceania">Oceania</option>
             </select>
           </div>
 
@@ -158,7 +118,7 @@ export const CareerPathDashboard: React.FC = () => {
             disabled={isSearching}
             className="px-6 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold flex items-center justify-center gap-2 transition-all shadow-md shadow-slate-900/20 disabled:opacity-70 shrink-0"
           >
-            {isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Search'}
+            {isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Search Jobs'}
           </button>
         </form>
       </section>
@@ -178,7 +138,7 @@ export const CareerPathDashboard: React.FC = () => {
           {jobs.length > 0 && !activeRoadmap && (
             <div className="space-y-4">
               <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-2">
-                <Briefcase className="w-4 h-4 text-indigo-500" /> Real-time Job Matches
+                <Briefcase className="w-4 h-4 text-indigo-500" /> Real-time Job Matches ({jobs.length})
               </h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -189,9 +149,11 @@ export const CareerPathDashboard: React.FC = () => {
                         <span className="text-[10px] uppercase font-bold tracking-widest text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
                           {job.source}
                         </span>
-                        <a href={job.url} target="_blank" rel="noreferrer" className="text-slate-400 hover:text-indigo-500 p-1 bg-slate-50 rounded-lg">
-                          <ExternalLink className="w-3.5 h-3.5" />
-                        </a>
+                        {job.url && job.url.startsWith('http') && (
+                          <a href={job.url} target="_blank" rel="noreferrer" className="text-slate-400 hover:text-indigo-500 p-1 bg-slate-50 rounded-lg">
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </a>
+                        )}
                       </div>
                       <h4 className="text-base font-bold text-slate-800 leading-tight mb-1 group-hover:text-indigo-600 transition-colors">
                         {job.title}
@@ -209,19 +171,10 @@ export const CareerPathDashboard: React.FC = () => {
                     </div>
 
                     <button
-                      onClick={() => handleGenerateRoadmap(job)}
-                      disabled={isGenerating && activeJobId !== job.id}
-                      className={`w-full py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all ${
-                        activeJobId === job.id
-                          ? 'bg-indigo-100 text-indigo-700 border border-indigo-200'
-                          : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300'
-                      }`}
+                      onClick={() => handleOpenRoadmapModal(job)}
+                      className="w-full py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all bg-indigo-50 text-indigo-700 hover:bg-indigo-600 hover:text-white border border-indigo-100 shadow-sm"
                     >
-                      {activeJobId === job.id && isGenerating ? (
-                        <><Loader2 className="w-4 h-4 animate-spin" /> Generating AI Roadmap...</>
-                      ) : (
-                        <><Sparkles className="w-4 h-4 text-amber-500" /> Generate Roadmap</>
-                      )}
+                      <Sparkles className="w-4 h-4 text-amber-500" /> Generate AI Roadmap
                     </button>
                   </div>
                 ))}
@@ -229,7 +182,7 @@ export const CareerPathDashboard: React.FC = () => {
             </div>
           )}
 
-          {/* ACTIVE ROADMAP VIEW */}
+          {/* ACTIVE ROADMAP VIEW FOR SAVED ROADMAPS */}
           {activeRoadmap && (
             <div className="bg-white border border-slate-200 rounded-3xl p-8 shadow-sm relative overflow-hidden">
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
@@ -250,7 +203,7 @@ export const CareerPathDashboard: React.FC = () => {
                 </div>
                 <div className="text-right">
                   <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200 inline-flex items-center gap-1.5 shadow-sm">
-                    <Save className="w-3.5 h-3.5" /> Automatically Saved
+                    <Save className="w-3.5 h-3.5" /> Saved
                   </span>
                 </div>
               </div>
@@ -268,7 +221,7 @@ export const CareerPathDashboard: React.FC = () => {
               </div>
               <h4 className="text-slate-700 font-bold mb-1">No Active Search</h4>
               <p className="text-xs text-slate-500 max-w-sm">
-                Enter a role above to fetch remote jobs and generate your personalized learning path.
+                Enter a target role above to fetch remote jobs and compare your profile skills.
               </p>
             </div>
           )}
@@ -319,6 +272,18 @@ export const CareerPathDashboard: React.FC = () => {
         </div>
 
       </div>
+
+      {/* ROADMAP MODAL */}
+      <RoadmapModal
+        job={selectedJob}
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          loadSavedRoadmaps();
+        }}
+        onNavigateToProfile={onNavigateToTab}
+      />
+
     </div>
   );
 };
