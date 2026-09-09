@@ -11,6 +11,8 @@
 
 CareerPilot AI is an AI-powered career intelligence platform combined with a modular Python Web & Resume Scraping Microservice.
 
+> 🤖 **For Judges & Hackathon Evaluators**: See our detailed [IBM Bob Technology Integration Guide](IBM_BOB_INTEGRATION.md) explaining how IBM Bob powers our skill normalization, agentic candidate verification, and dynamic AI roadmap engines.
+
 ---
 
 ## 🏗️ System Architecture
