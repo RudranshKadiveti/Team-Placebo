@@ -34,162 +34,162 @@ def create_presentation():
         {
             "type": "content",
             "title": "1. Problem Statement",
-            "subtitle": "The Limitations of Traditional Recruitment & Job Search",
+            "subtitle": "Challenges Job Seekers & Hiring Teams Face Today",
             "points": [
-                "Rigid Keyword Matching: Traditional ATS screeners reject candidates based on exact string matches, ignoring real technical capability.",
-                "Static Resumes vs Dynamic Portfolios: PDF resumes fail to reflect actual coding output, commit frequency, or open-source impact.",
-                "Unclear Skill Progression: Job seekers lack personalized, data-driven roadmaps to bridge their specific skill gaps."
+                "Flawed Keyword Screening: Traditional ATS portals reject qualified talent simply because exact keyword strings are missing from their resumes.",
+                "Unverified Candidate Claims: Static PDF resumes fail to reflect actual coding ability, commit frequency, or real engineering impact.",
+                "Lack of Actionable Career Guidance: Rejected applicants receive zero feedback on missing skills or how to bridge gaps for target roles."
             ]
         },
         {
             "type": "content",
             "title": "2. The Solution: CareerPilot AI",
-            "subtitle": "An End-to-End AI & Vector-Search Career Acceleration Ecosystem",
+            "subtitle": "Empowering Job Seekers & Recruiters with Intelligence",
             "points": [
-                "Semantic Vector Matching: High-dimensional embeddings with PostgreSQL pgvector to match context, not just keywords.",
-                "Automated GitHub Portfolio Analysis: Direct integration with GitHub API to compute real technical capability scores.",
-                "Dynamic AI Roadmap Engine: Tailored step-by-step milestones to bridge candidate skill gaps for target roles."
+                "Contextual Semantic Matching: Evaluates candidate experience based on conceptual skill meaning rather than primitive word matching.",
+                "Verified Code Quantification: Connects directly to GitHub to calculate objective developer performance scores from real code activity.",
+                "Personalized Growth Roadmaps: Automatically detects candidate skill gaps for any role and constructs step-by-step learning blueprints."
             ]
         },
         {
             "type": "content",
             "title": "3. System Architecture",
-            "subtitle": "Modern Full-Stack Microservice Ecosystem",
+            "subtitle": "High-Level Data Flow & Modular Platform Structure",
             "points": [
-                "Frontend: React 18 + Vite + TypeScript + Tailwind CSS (Dark Glassmorphic UI)",
-                "Backend API: Node.js + Express + TypeScript + Prisma ORM",
-                "Database: PostgreSQL 16 + pgvector (HNSW Indexing for vector search)",
-                "Microservice: Python 3.11 + Playwright Async Browser Scraper + Streamlit Dashboard"
+                "Data Capture: Accepts PDF/Word resumes, GitHub profile links, and live web job postings.",
+                "AI Processing Layer: Normalizes skill terms, parses candidate content, and calculates ATS readability & impact metrics.",
+                "Vector Search Core: Matches candidate vectors against industry job datasets using high-performance similarity search.",
+                "User Interface: Renders interactive dashboards, ATS score breakdowns, and milestone roadmaps."
             ]
         },
         {
             "type": "screenshot",
-            "title": "4. Modern Glassmorphic Dashboard",
-            "subtitle": "Feature Highlight 1: Unified Dark Mode Interface",
+            "title": "4. Glassmorphic User Dashboard",
+            "subtitle": "Feature Highlight 1: Unified Dark-Mode Command Center",
             "points": [
-                "Cyberpunk-inspired glassmorphism with high-contrast UI tokens.",
-                "Live navigation across Portfolio, ATS Scoring, Role Analysis, and AI Roadmaps.",
-                "Responsive dashboard layouts optimized for all display sizes."
+                "Central Command Hub: Allows candidates to manage their profile, view target roles, track scores, and explore roadmaps in one place.",
+                "Real-Time Stats Display: Instantly highlights overall ATS compatibility, portfolio strength, and recommended next steps.",
+                "Fluid User Experience: Features modern glassmorphism visuals designed for effortless navigation and clarity."
             ],
-            "placeholder": "[ 🖼️ INSERT SCREENSHOT HERE: Main Dashboard Homepage (http://localhost:5173/) ]"
+            "placeholders": [
+                "[ 🖼️ INSERT SCREENSHOT HERE: Main Dashboard Homepage (http://localhost:5173/) ]"
+            ]
         },
         {
-            "type": "screenshot",
+            "type": "multi_screenshot",
             "title": "5. GitHub Portfolio Analyzer",
-            "subtitle": "Feature Highlight 2: Real-World Code Quantification",
+            "subtitle": "Feature Highlight 2: Code Verification & Technical Scoring (3 Screenshot Slots)",
             "points": [
-                "Extracts public repositories, commit velocity, languages, and star counts.",
-                "Calculates objective Technical Portfolio Score (0-100%).",
-                "Provides stack distribution breakdown (Frontend, Backend, DevOps, AI)."
+                "Live Code Analysis: Analyzes public repositories, commit velocity, code syntax, and star counts directly from GitHub.",
+                "Objective Developer Score: Converts real activity into a verified Technical Portfolio Score (0-100%).",
+                "Stack Breakdown: Displays clear visual charts of language distribution (Frontend, Backend, AI, DevOps)."
             ],
-            "placeholder": "[ 🖼️ INSERT SCREENSHOT HERE: GitHub Portfolio Analyzer Dashboard ]"
+            "placeholders": [
+                "[ 🖼️ Image Slot 1: GitHub Profile Analysis & Developer Score ]",
+                "[ 🖼️ Image Slot 2: Repository Metrics & Commit Velocity Chart ]",
+                "[ 🖼️ Image Slot 3: Tech Stack Breakdown & Language Distribution ]"
+            ]
         },
         {
             "type": "screenshot",
-            "title": "6. Resume Upload & Extraction Engine",
-            "subtitle": "Feature Highlight 3: AI Document Parsing",
+            "title": "6. Resume Parsing & ATS Diagnostic Suite",
+            "subtitle": "Feature Highlight 3: Document Upload, Readability Check & Compatibility Scoring",
             "points": [
-                "Supports PDF, DOCX, and TXT resume file uploads.",
-                "Extracts structured JSON schema using Google Gemini AI.",
-                "Categorizes skills, work experiences, education, and impact statements."
+                "Seamless Upload & Extraction: Accepts PDF, Word, or text CVs and extracts structured experience, skills, and contact details.",
+                "Formatting & Readability Inspection: Verifies optimal word count (100-1000 words), bullet point density, and machine parseability.",
+                "Weighted ATS Compatibility Score: Computes an overall 0-100% score (45% Skills, 25% Impact, 25% Readability, 10% Structure) and provides a checkbox task list to fix issues."
             ],
-            "placeholder": "[ 🖼️ INSERT SCREENSHOT HERE: Resume Upload & Structured JSON View ]"
+            "placeholders": [
+                "[ 🖼️ INSERT SCREENSHOT HERE: Resume Upload, ATS Score Gauge & Formatting Checklist ]"
+            ]
         },
         {
             "type": "screenshot",
-            "title": "7. Automated ATS Compatibility Scoring",
-            "subtitle": "Feature Highlight 4: Real-Life Recruiter Weightage Engine",
+            "title": "7. Intelligent Vector Search Job Matching",
+            "subtitle": "Feature Highlight 4: Contextual Career Role Recommendations",
             "points": [
-                "45% Keyword & Skill Density Match",
-                "25% Measurable Experience Impact",
-                "25% Readability & Machine-Parseability",
-                "10% Document Structure & Completeness"
+                "Contextual Understanding: Evaluates candidates against job openings based on underlying meaning rather than strict word matches.",
+                "Sub-Millisecond Matches: Instantly computes similarity match percentages (e.g. 88% Match) across thousands of roles.",
+                "Interactive Job Explorer: Allows users to click on any job listing to view detailed requirements and instant skill gap comparisons."
             ],
-            "placeholder": "[ 🖼️ INSERT SCREENSHOT HERE: ATS Score Gauge & Point Breakdown Chart ]"
+            "placeholders": [
+                "[ 🖼️ INSERT SCREENSHOT HERE: Job Matching Cards & Similarity Percentage Badges ]"
+            ]
         },
         {
             "type": "screenshot",
-            "title": "8. Formatting Diagnostics & Readability Check",
-            "subtitle": "Feature Highlight 5: Automated Document Inspection",
+            "title": "8. Kaggle AI Job Dataset Ingestion",
+            "subtitle": "Feature Highlight 5: Real-World Industry Benchmarks",
             "points": [
-                "Length Verification: Ensures optimal word count range (100 - 1000 words).",
-                "Bullet Density Analysis: Requires standard ATS bullet structures.",
-                "Generates interactive To-Do checklist for instant candidate formatting fixes."
+                "Massive Data Catalog: Ingests thousands of active engineering job postings to provide real-world industry benchmarks.",
+                "Skill Demand Insights: Shows candidates what skills are currently trending and most requested in their field.",
+                "Market Salary Standards: Helps candidates align their career expectations with current industry standards."
             ],
-            "placeholder": "[ 🖼️ INSERT SCREENSHOT HERE: Formatting Diagnostics & Issue Checklist ]"
+            "placeholders": [
+                "[ 🖼️ INSERT SCREENSHOT HERE: Kaggle AI Dataset Search & Industry Role Benchmarks ]"
+            ]
         },
         {
             "type": "screenshot",
-            "title": "9. Vector Search Job Matching (pgvector)",
-            "subtitle": "Feature Highlight 6: Cosine Similarity Matching",
+            "title": "9. Dynamic AI Roadmap Generator",
+            "subtitle": "Feature Highlight 6: Personalized Step-by-Step Learning Plans",
             "points": [
-                "Embeds target job requirements and candidate profiles into 384-dim vector space.",
-                "HNSW Indexing provides sub-millisecond similarity search.",
-                "Displays real-time similarity match percentages (e.g. 88% Match)."
+                "Automated Skill Gap Detection: Compares current candidate capabilities against target job requirements to identify missing skills.",
+                "Structured Milestones: Builds a phased learning blueprint (Foundations, Advanced Tools, Hands-On Projects).",
+                "Actionable Guidance: Provides estimated completion timeframes and curated resources for every milestone."
             ],
-            "placeholder": "[ 🖼️ INSERT SCREENSHOT HERE: Role Analysis & Cosine Similarity Match Cards ]"
-        },
-        {
-            "type": "screenshot",
-            "title": "10. Kaggle AI Dataset Benchmark",
-            "subtitle": "Feature Highlight 7: Industry Job Ingestion",
-            "points": [
-                "Ingests thousands of real AI & software engineering job postings.",
-                "Automatic embedding generation using Xenova/Sentence-Transformers.",
-                "Provides market benchmarks for salary, skills demand, and role requirements."
-            ],
-            "placeholder": "[ 🖼️ INSERT SCREENSHOT HERE: Kaggle AI Dataset Search & Benchmarks ]"
-        },
-        {
-            "type": "screenshot",
-            "title": "11. Dynamic AI Roadmap Generator",
-            "subtitle": "Feature Highlight 8: Personalised Career Blueprints",
-            "points": [
-                "Performs automated skill gap analysis against candidate profiles.",
-                "Generates step-by-step milestones (Foundations, Advanced Tools, Real-World Projects).",
-                "Includes estimated completion timeframes and recommended learning resources."
-            ],
-            "placeholder": "[ 🖼️ INSERT SCREENSHOT HERE: AI Roadmap Modal & Milestone Progression ]"
-        },
-        {
-            "type": "screenshot",
-            "title": "12. Playwright Scraping Microservice",
-            "subtitle": "Feature Highlight 9: Async Scraping Dashboard",
-            "points": [
-                "Autonomous Python microservice with Streamlit UI (http://localhost:8501).",
-                "Dual-mode: Direct Playwright browser scraping & Gemini Agentic scraping.",
-                "Multi-format export: JSON, CSV, Markdown, Text, and Terraform (.tf)."
-            ],
-            "placeholder": "[ 🖼️ INSERT SCREENSHOT HERE: Streamlit Web & Resume Scraping Dashboard ]"
-        },
-        {
-            "type": "content",
-            "title": "13. Database Schema & Prisma ORM",
-            "subtitle": "Robust Data Modeling for High-Performance Queries",
-            "points": [
-                "User & Profile Schemas: Stores core details, career goals, and skills inventory.",
-                "Resume & ATS Schemas: Stores raw text, parsed JSON chunks, and score breakdowns.",
-                "Job & Vector Embeddings: Utilizes PostgreSQL vector type with HNSW index for lightning fast queries."
+            "placeholders": [
+                "[ 🖼️ INSERT SCREENSHOT HERE: AI Roadmap Modal & Phased Milestone Progression ]"
             ]
         },
         {
             "type": "content",
-            "title": "14. Containerization & Deployment",
-            "subtitle": "Docker Compose Microservice Orchestration",
+            "title": "10. Playwright Scraping Microservice",
+            "subtitle": "Feature Highlight 7: Autonomous Web Data Extraction (No Image Slot)",
             "points": [
-                "PostgreSQL Container: pgvector/pgvector:pg16 running on port 5432.",
-                "Web Scraper Container: Containerized Python 3.11 + Playwright environment on port 8501.",
-                "Express & Vite Services: Zero-downtime development and production build pipeline."
+                "Live Job Extraction: Automatically crawls job listings and career portals to pull full job descriptions and requirement details.",
+                "Dual Scraping Modes: Supports fast automated browser extraction as well as AI-assisted page parsing.",
+                "Multi-Format Data Export: Enables candidates and recruiters to download extracted job data in JSON, CSV, Text, Markdown, or Terraform format."
             ]
         },
         {
             "type": "content",
-            "title": "15. Conclusion & Future Roadmap",
-            "subtitle": "CareerPilot AI — Next Steps & Impact",
+            "title": "11. IBM Bob Skill Normalization & Verification",
+            "subtitle": "Feature Highlight 8: Standardized Skill Taxonomy & Anti-Inflation Agent",
             "points": [
-                "Impact: Empowers job seekers with data-driven clarity and ATS compatibility.",
-                "Upcoming Features: Real-time mock interview simulator, auto-tailored cover letter generator, and live recruiter connection portal.",
-                "Thank You! All source code available at Team-Placebo repository."
+                "Skill Standardization: Translates non-standard resume phrasing into unified skill terms for precise matching.",
+                "Candidate Claim Verification: Cross-checks resume experience bullets against actual GitHub repository commits to eliminate resume inflation.",
+                "Unbiased Career Guidance: Enforces fair evaluation standards across all candidate assessments and AI roadmaps."
+            ]
+        },
+        {
+            "type": "content",
+            "title": "12. Robust Database & Data Modeling",
+            "subtitle": "Structured Organization for User Profiles & Vector Search",
+            "points": [
+                "User Profile Records: Securely stores profile info, skill inventories, and target career goals.",
+                "Resume & Diagnostic Logs: Manages raw text, structured extraction JSON, formatting flags, and historical ATS scores.",
+                "Job & Vector Storage: Indexes high-dimensional vector representations for instant role matching queries."
+            ]
+        },
+        {
+            "type": "content",
+            "title": "13. Containerized Deployment & Orchestration",
+            "subtitle": "Reliable & Scalable Production Architecture",
+            "points": [
+                "One-Click Environment Setup: Orchestrates the database, backend services, and scraping engines via Docker Compose.",
+                "Isolated Service Operations: Ensures web scraping, API handling, and frontend rendering operate smoothly without bottlenecking.",
+                "Production-Ready Performance: Guarantees high availability and fast response times for concurrent users."
+            ]
+        },
+        {
+            "type": "content",
+            "title": "14. Conclusion & Future Roadmap",
+            "subtitle": "Transforming Career Growth with AI Intelligence",
+            "points": [
+                "Empowering Job Seekers: Replaces guesswork with clear ATS feedback, verified portfolio scores, and actionable learning roadmaps.",
+                "Streamlining Recruitment: Helps hiring teams identify genuine engineering talent faster through verified code metrics.",
+                "Upcoming Capabilities: Expanding into interactive AI mock interviews and automated resume customization per job posting."
             ]
         }
     ]
@@ -314,7 +314,7 @@ def create_presentation():
                 p.font.color.rgb = COLOR_TEXT
                 p.space_after = Pt(14)
 
-            # Right side: Screenshot Placeholder box
+            # Right side: Single Screenshot Placeholder box
             card_right = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(6.3), Inches(1.8), Inches(6.2), Inches(5.0))
             card_right.fill.solid()
             card_right.fill.fore_color.rgb = RGBColor(24, 32, 47)
@@ -325,16 +325,78 @@ def create_presentation():
             ptf = ptb.text_frame
             ptf.word_wrap = True
             pp = ptf.paragraphs[0]
-            pp.text = data["placeholder"]
+            pp.text = data["placeholders"][0]
             pp.font.name = "Arial"
             pp.font.size = Pt(15)
             pp.font.bold = True
             pp.font.color.rgb = COLOR_PURPLE
             pp.alignment = PP_ALIGN.CENTER
 
+        elif data["type"] == "multi_screenshot":
+            # Title
+            tb = slide.shapes.add_textbox(Inches(0.8), Inches(0.4), Inches(11.733), Inches(1.2))
+            tf = tb.text_frame
+            tf.word_wrap = True
+
+            p1 = tf.paragraphs[0]
+            p1.text = data["title"]
+            p1.font.name = "Arial"
+            p1.font.size = Pt(28)
+            p1.font.bold = True
+            p1.font.color.rgb = COLOR_TEXT
+
+            p2 = tf.add_paragraph()
+            p2.text = data["subtitle"]
+            p2.font.name = "Arial"
+            p2.font.size = Pt(15)
+            p2.font.color.rgb = COLOR_MUTED
+            p2.space_before = Pt(4)
+
+            # Left side: Points card
+            card_left = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.8), Inches(1.8), Inches(5.2), Inches(5.0))
+            card_left.fill.solid()
+            card_left.fill.fore_color.rgb = COLOR_CARD
+            card_left.line.color.rgb = COLOR_BORDER
+
+            ctb = slide.shapes.add_textbox(Inches(1.0), Inches(2.0), Inches(4.8), Inches(4.6))
+            ctf = ctb.text_frame
+            ctf.word_wrap = True
+
+            for idx, pt in enumerate(data["points"]):
+                p = ctf.paragraphs[0] if idx == 0 else ctf.add_paragraph()
+                p.text = f"• {pt}"
+                p.font.name = "Arial"
+                p.font.size = Pt(15)
+                p.font.color.rgb = COLOR_TEXT
+                p.space_after = Pt(14)
+
+            # Right side: 3 Stacked Screenshot Placeholder boxes
+            box_height = 1.5
+            gap = 0.25
+            top_start = 1.8
+
+            for s_idx, placeholder_text in enumerate(data["placeholders"]):
+                c_top = top_start + s_idx * (box_height + gap)
+                card_slot = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(6.3), Inches(c_top), Inches(6.2), Inches(box_height))
+                card_slot.fill.solid()
+                card_slot.fill.fore_color.rgb = RGBColor(24, 32, 47)
+                card_slot.line.color.rgb = COLOR_ACCENT if s_idx == 0 else (COLOR_PURPLE if s_idx == 1 else COLOR_GREEN)
+                card_slot.line.width = Pt(2)
+
+                s_tb = slide.shapes.add_textbox(Inches(6.4), Inches(c_top + 0.4), Inches(6.0), Inches(0.8))
+                s_tf = s_tb.text_frame
+                s_tf.word_wrap = True
+                s_p = s_tf.paragraphs[0]
+                s_p.text = placeholder_text
+                s_p.font.name = "Arial"
+                s_p.font.size = Pt(13)
+                s_p.font.bold = True
+                s_p.font.color.rgb = COLOR_ACCENT if s_idx == 0 else (COLOR_PURPLE if s_idx == 1 else COLOR_GREEN)
+                s_p.alignment = PP_ALIGN.CENTER
+
     output_path = r"C:\Users\saisu\.gemini\antigravity-ide\scratch\Team-Placebo\CareerPilot_AI_Presentation.pptx"
     prs.save(output_path)
-    print(f"Presentation saved successfully at {output_path}")
+    print(f"Presentation updated successfully at {output_path}")
 
 if __name__ == "__main__":
     create_presentation()
